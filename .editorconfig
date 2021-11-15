@@ -10,25 +10,15 @@ end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-# Style-Files
-[*.{css,scss,less}]
-indent_style = space
-indent_size = 4
-
-# HTML-Files
-[*.html]
-indent_style = space
-indent_size = 4
-
 # JS-Files
 [*.{mjs,js,ts}]
 indent_style = space
-indent_size = 4
+indent_size = 2
 
 # JSON-Files
 [*.json]
 indent_style = space
-indent_size = 4
+indent_size = 2
 
 # MD-Files
 [*.md]
