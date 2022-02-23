@@ -2,24 +2,23 @@ export type Spy = {
   (...args: []): void;
   readonly callCount: number;
   readonly callArgs: [];
-}
+};
 
 export const spy = (): Spy => {
-  let callCount = 0
-  const callArgs: unknown[] = []
+  let callCount = 0;
+  const callArgs: unknown[] = [];
 
   const fn = function(...args: []) {
-    callCount += 1
-    callArgs[callCount] = args
-  }
+    callCount += 1;
+    callArgs[callCount] = args;
+  };
 
   Object.defineProperties(fn, {
     callCount: { enumerable: true, get: () => callCount },
     callArgs: { enumerable: true, get: () => callArgs }
-  })
+  });
 
-  return fn as Spy
-}
+  return fn as Spy;
+};
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-export const noop = (): void => { }
+export const noop = (): void => { /**/ };

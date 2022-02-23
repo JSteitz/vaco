@@ -6,26 +6,15 @@
     "node": true
   },
   "extends": [
-    "plugin:promise/recommended",
-    "plugin:import/recommended",
-    "plugin:import/typescript",
+    "eslint:recommended",
     "plugin:@typescript-eslint/recommended"
   ],
-  "parser": "@typescript-eslint/parser",
-  "parserOptions": {
-    "ecmaVersion": 2020,
-    "sourceType": "module",
-    "ecmaFeatures": {
-      "generators": false,
-      "objectLiteralDuplicateProperties": false
-    }
-  },
   "plugins": [
-    "promise",
-    "import",
     "@typescript-eslint"
   ],
-  "ignorePatterns": ["dist/*"],
+  "ignorePatterns": [
+    "dist/*"
+  ],
   "rules": {
     "@typescript-eslint/ban-ts-comment": [
       "error",
@@ -34,30 +23,13 @@
       }
     ]
   },
-  "overrides": [
-    {
-      "files": [
-        "*.ts"
-      ],
-      "extends": [
-        "plugin:@typescript-eslint/recommended"
-      ],
-      "plugins": [
-        "@typescript-eslint"
-      ],
-      "parser": "@typescript-eslint/parser"
-    },
-    {
-      "files": [
-        "*.spec.ts"
-      ]
-    }
-  ],
-  "settings": {
-    "import/resolver": {
-      "typescript": {
-        "alwaysTryTypes": true
-      }
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "generators": false,
+      "objectLiteralDuplicateProperties": false
     }
   }
 }
