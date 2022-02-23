@@ -1,8 +1,8 @@
-import type { ValidityStateFlags } from './api'
-import type { NativeControlApi } from './control'
-import type { SubmittableElement } from './utils'
+import type { ValidityStateFlags } from './api';
+import type { NativeControlApi } from './control';
+import type { SubmittableElement } from './utils';
 
-export type Constraints = { [key: string]: Constraint }
+export type Constraints = { [key: string]: Constraint; };
 
 export type I18nCallback = (key: string, name: string, ...attributes: unknown[]) => string | null;
 
@@ -40,7 +40,7 @@ export type ConstraintInternals = {
    * @signature setValidity :: (ValidityStateFlags, string?) -> void
    */
   setValidity(flags: ValidityStateFlags, message?: string): void;
-}
+};
 
 export type Constraint = {
   /**
@@ -73,7 +73,7 @@ export type Constraint = {
    * @return {Promise<void>}
    */
   validate(internals: ConstraintInternals): Promise<unknown>;
-}
+};
 
 /**
  * Filter constraints that match at least one item of the provided attributes list
@@ -89,7 +89,7 @@ export const getByAttributes =
             ? { ...result, [name]: constraint }
             : result,
         {}
-      )
+      );
 
 /**
  * Extracts validity states from all constrains as a string list
@@ -102,7 +102,7 @@ export const getValidityStates =
       (result: string[], [, constraint]: [string, Constraint]) =>
         [...result, ...constraint.states],
       []
-    )
+    );
 
 /**
  * Extracts unique attributes from all constrains as a string list
@@ -115,4 +115,4 @@ export const getAttributes =
       (result: Set<string>, [, constraint]: [string, Constraint]) =>
         new Set([...result, ...constraint.attributes]),
       new Set()
-    )
+    );

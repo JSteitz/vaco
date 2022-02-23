@@ -1,5 +1,5 @@
-import type { ListedElement, SubmittableElement } from './utils'
-import { getSubmittableElements, isSubmittableElement } from './utils'
+import type { ListedElement, SubmittableElement } from './utils';
+import { getSubmittableElements, isSubmittableElement } from './utils';
 
 declare global {
   interface ValidityState {
@@ -13,7 +13,7 @@ export interface ValidityStateFlags {
 
 export type ValidationMessages = {
   [key: string]: string;
-}
+};
 
 export type ReporterCallback = (element: SubmittableElement) => void;
 
@@ -25,10 +25,10 @@ export type ReporterCallback = (element: SubmittableElement) => void;
 export const ValidityStateDescriptor =
   (value: boolean): TypedPropertyDescriptor<boolean> => ({
     configurable: true,
-    enumerable: false,
+    enumerable: true,
     writable: false,
     value
-  })
+  });
 
 /**
  * Create a validity state object with the provided flags
@@ -45,7 +45,7 @@ export const createValidityState =
         (result: PropertyDescriptorMap, flag: string) =>
           ({ ...result, [flag]: ValidityStateDescriptor(false) }),
         { customError: ValidityStateDescriptor(false), valid: ValidityStateDescriptor(true) }
-      ))
+      ));
 
 /**
  * Test if internals target element has no validity problems
@@ -60,15 +60,15 @@ export const checkValidity =
   (element: ListedElement) =>
     (): boolean => {
       if (element.willValidate && !element.validity.valid) {
-        element.dispatchEvent(new window.CustomEvent('invalid', { cancelable: true }))
+        element.dispatchEvent(new window.CustomEvent('invalid', { cancelable: true }));
 
-        return false
+        return false;
       }
 
-      element.dispatchEvent(new window.CustomEvent('valid', { cancelable: true }))
+      element.dispatchEvent(new window.CustomEvent('valid', { cancelable: true }));
 
-      return true
-    }
+      return true;
+    };
 
 /**
  * Get latest validation message for internals target element, if any
@@ -82,7 +82,7 @@ export const getValidationMessage =
   (validationMessages: ValidationMessages) =>
     (element: ListedElement) =>
       (): string =>
-        (element.willValidate ? Object.values(validationMessages)[0] ?? '' : '')
+        (element.willValidate ? Object.values(validationMessages)[0] ?? '' : '');
 
 /**
  * Test element if it is a candidate for constraint validation
@@ -97,12 +97,12 @@ export const isBarredFromConstraintValidation =
     || element instanceof HTMLFieldSetElement
     || element.type === 'hidden'
     || element.type === 'reset'
-  || element.type === 'button'
+    || element.type === 'button'
     || ('readOnly' in element && element.readOnly)
     || element.disabled
     || element.hidden
     || element.closest('datalist') !== null
-  )
+  );
 
 /**
  * Test if internals target element has no validity problems and report to user
@@ -121,18 +121,18 @@ export const reportValidity =
       (): boolean => {
         if (element.willValidate && !element.validity.valid) {
           if (element.dispatchEvent(new CustomEvent('invalid', { cancelable: true }))) {
-            validityReporter(element)
+            validityReporter(element);
           }
 
-          return false
+          return false;
         }
 
         if (element.dispatchEvent(new CustomEvent('valid', { cancelable: true }))) {
-          validityReporter(element)
+          validityReporter(element);
         }
 
-        return true
-      }
+        return true;
+      };
 
 /**
  * Marks internals target element as suffering from the constraints indicated
@@ -145,22 +145,22 @@ export const setValidity =
     (element: ListedElement) =>
       (flags: ValidityStateFlags, message?: string): void => {
         if (!element.willValidate) {
-          return
+          return;
         }
 
         if (Object.values(flags).includes(true) && (!message || message === '')) {
-          throw new TypeError('Message can not be empty for the given flags')
+          throw new TypeError('Message can not be empty for the given flags');
         }
 
         Object.entries(flags).forEach(([flag, value]) => {
-          Object.defineProperty(element.validity, flag, ValidityStateDescriptor(value))
+          Object.defineProperty(element.validity, flag, ValidityStateDescriptor(value));
 
-          if (value && message !== null) {
-            validationMessages[flag] = message
+          if (value && message !== undefined) {
+            validationMessages[flag] = message;
           } else {
-            delete validationMessages[flag]
+            delete validationMessages[flag];
           }
-        })
+        });
 
         Object.defineProperty(
           element.validity,
@@ -170,8 +170,8 @@ export const setValidity =
               .filter((property: string): boolean => property !== 'valid')
               .every((property: string): boolean => (element.validity[property] === false))
           )
-        )
-      }
+        );
+      };
 
 /**
  * Reset provided validity state flags to initial state for the element
@@ -187,13 +187,13 @@ export const resetValidity =
       (flags: string[]) =>
         (): void => {
           if (!element.willValidate) {
-            return
+            return;
           }
 
           flags.forEach((flag: string) => {
-            Object.defineProperty(element.validity, flag, ValidityStateDescriptor(false))
-            delete validationMessages[flag]
-          })
+            Object.defineProperty(element.validity, flag, ValidityStateDescriptor(false));
+            delete validationMessages[flag];
+          });
 
           Object.defineProperty(
             element.validity,
@@ -203,8 +203,8 @@ export const resetValidity =
                 .filter((property: string): boolean => property !== 'valid')
                 .every((property: string): boolean => (element.validity[property] === false))
             )
-          )
-        }
+          );
+        };
 
 /**
  * Sets a custom error, so that the element would fail to validate
@@ -222,7 +222,7 @@ export const setCustomValidity =
         setValidity(validationMessages)(element)(
           { customError: validationMessage?.length > 0 ?? false },
           validationMessage
-        )
+        );
 
 /**
  * Test if internals target element will be validated
@@ -232,7 +232,7 @@ export const setCustomValidity =
 export const willValidate =
   (element: ListedElement) =>
     (): boolean =>
-      isSubmittableElement(element) && !isBarredFromConstraintValidation(element)
+      isSubmittableElement(element) && !isBarredFromConstraintValidation(element);
 
 /**
  * Test all submittable elements for the provided form and report to user
@@ -260,46 +260,46 @@ export const interactivelyValidate =
   (validityReporter: CallableFunction) =>
     (element: HTMLFormElement) =>
       (): boolean | SubmittableElement[] => {
-        const controls: SubmittableElement[] = getSubmittableElements(element)
-        const validControls: SubmittableElement[] = []
-        const invalidControls: SubmittableElement[] = []
-        const unhandledInvalidControls: SubmittableElement[] = []
+        const controls: SubmittableElement[] = getSubmittableElements(element);
+        const validControls: SubmittableElement[] = [];
+        const invalidControls: SubmittableElement[] = [];
+        const unhandledInvalidControls: SubmittableElement[] = [];
 
         controls.forEach((field) => {
           if (!field.willValidate) {
-            return
+            return;
           }
 
           if (field.validity.valid) {
-            validControls.push(field)
+            validControls.push(field);
           } else {
-            invalidControls.push(field)
+            invalidControls.push(field);
           }
-        })
+        });
 
-        if (invalidControls.length === 0) {
-          element.dispatchEvent(new window.CustomEvent('valid', { cancelable: true }))
-
-          validControls.forEach((field) => {
-            if (field.dispatchEvent(new window.CustomEvent('valid', { cancelable: true }))) {
-              validityReporter(field)
-            }
-          })
-
-          return true
-        }
-
-        element.dispatchEvent(new window.CustomEvent('invalid', { cancelable: true }))
+        validControls.forEach((field) => {
+          if (field.dispatchEvent(new window.CustomEvent('valid', { cancelable: true }))) {
+            validityReporter(field);
+          }
+        });
 
         invalidControls.forEach((field) => {
           if (field.dispatchEvent(new window.CustomEvent('invalid', { cancelable: true }))) {
-            validityReporter(field)
-            unhandledInvalidControls.push(field)
+            validityReporter(field);
+            unhandledInvalidControls.push(field);
           }
-        })
+        });
 
-        return unhandledInvalidControls
-      }
+        if (invalidControls.length === 0) {
+          element.dispatchEvent(new window.CustomEvent('valid', { cancelable: true }));
+
+          return true;
+        } else {
+          element.dispatchEvent(new window.CustomEvent('invalid', { cancelable: true }));
+
+          return unhandledInvalidControls;
+        }
+      };
 
 /**
  * Test all submittable elements for the provided form
@@ -319,36 +319,36 @@ export const interactivelyValidate =
 export const staticallyValidate =
   (element: HTMLFormElement) =>
     (): boolean | SubmittableElement[] => {
-      const controls: SubmittableElement[] = getSubmittableElements(element)
-      const invalidControls: SubmittableElement[] = []
-      const unhandledInvalidControls: SubmittableElement[] = []
+      const controls: SubmittableElement[] = getSubmittableElements(element);
+      const invalidControls: SubmittableElement[] = [];
+      const unhandledInvalidControls: SubmittableElement[] = [];
 
       controls.forEach((field) => {
         if (!field.willValidate) {
-          return
+          return;
         }
 
         if (field.validity.valid) {
-          field.dispatchEvent(new window.CustomEvent('valid', { cancelable: true }))
-          return
+          field.dispatchEvent(new window.CustomEvent('valid', { cancelable: true }));
+          return;
         }
 
-        invalidControls.push(field)
-      })
+        invalidControls.push(field);
+      });
 
       if (invalidControls.length === 0) {
-        element.dispatchEvent(new window.CustomEvent('valid', { cancelable: true }))
+        element.dispatchEvent(new window.CustomEvent('valid', { cancelable: true }));
 
-        return true
+        return true;
       }
 
-      element.dispatchEvent(new window.CustomEvent('invalid', { cancelable: true }))
+      element.dispatchEvent(new window.CustomEvent('invalid', { cancelable: true }));
 
       invalidControls.forEach((field) => {
         if (field.dispatchEvent(new window.CustomEvent('invalid', { cancelable: true }))) {
-          unhandledInvalidControls.push(field)
+          unhandledInvalidControls.push(field);
         }
-      })
+      });
 
-      return unhandledInvalidControls
-    }
+      return unhandledInvalidControls;
+    };

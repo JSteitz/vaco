@@ -1,21 +1,21 @@
-import type { ReporterCallback } from './api'
-import type { Constraints, I18nCallback } from './constraint'
-import type { Observer } from './observer'
-import type { ListedElement } from './utils'
-import type { Validator } from './validator'
-import { getAttributes, getValidityStates } from './constraint'
-import { ControlApi, createControlApi, setupControl, teardownControl } from './control'
-import { createFormApi, FormApi, setupForm, submitGuard, teardownForm } from './form'
-import { createObserver } from './observer'
-import { isListedElement, isSubmittableElement } from './utils'
-import { createValidator } from './validator'
+import type { ReporterCallback } from './api';
+import type { Constraints, I18nCallback } from './constraint';
+import type { Observer } from './observer';
+import type { ListedElement } from './utils';
+import type { Validator } from './validator';
+import { getAttributes, getValidityStates } from './constraint';
+import { ControlApi, createControlApi, setupControl, teardownControl } from './control';
+import { createFormApi, FormApi, setupForm, submitGuard, teardownForm } from './form';
+import { createObserver } from './observer';
+import { isListedElement, isSubmittableElement } from './utils';
+import { createValidator } from './validator';
 
 // @todo add documentation to all functions and types
 export type VacoOptions = {
   constraints: Constraints;
   reporter?: ReporterCallback;
   i18n?: I18nCallback;
-}
+};
 
 export type VacoState = {
   readonly reporter: ReporterCallback;
@@ -25,16 +25,16 @@ export type VacoState = {
   readonly validator: Validator;
   readonly i18n: I18nCallback;
   readonly observer: Observer;
-  readonly refs: WeakMap<HTMLFormElement|ListedElement, RefObject>
-}
+  readonly refs: WeakMap<HTMLFormElement | ListedElement, RefObject>;
+};
 
 export type RefObject = {
   readonly api: FormApi | ControlApi;
   readonly native: Record<string, unknown>;
-}
+};
 
-export const VACO = Symbol('Vaco')
-export const VERSION = '1.0.0'
+export const VACO = Symbol('Vaco');
+export const VERSION = '1.0.0';
 
 /**
  *
@@ -45,45 +45,44 @@ export const mount =
   (state: VacoState) =>
     (element: HTMLFormElement | ListedElement): void => {
       if (state.refs.has(element)) {
-        return
+        return;
       }
 
       if (element instanceof HTMLFormElement) {
-        const api = createFormApi(state.reporter, element)
-        const native = setupForm(api)(element)
+        const api = createFormApi(state.reporter, element);
+        const native = setupForm(api)(element);
 
-        state.refs.set(element, { api, native })
+        state.refs.set(element, { api, native });
 
-        element.addEventListener('submit', submitGuard)
-        Array.from(element.elements).forEach(mount(state))
+        element.addEventListener('submit', submitGuard);
+        (<ListedElement[]>[...element.elements]).forEach(mount(state));
 
-        return
+        return;
       }
 
       if (isSubmittableElement(element)) {
-        const api = createControlApi(state.reporter, state.states, element)
-        const native = setupControl(api)(element)
+        const api = createControlApi(state.reporter, state.states, element);
+        const native = setupControl(api)(state.validator.run)(element);
 
-        state.refs.set(element, { api, native })
+        state.refs.set(element, { api, native });
 
-        state.observer.connect(element)
-        element.addEventListener('input', state.validator.runStream)
-        state.validator.run(element)
+        state.observer.connect(element);
+        state.validator.run(element);
 
-        return
+        return;
       }
 
       if (isListedElement(element)) {
-        const api = createControlApi(state.reporter, state.states, element)
-        const native = setupControl(api)(element)
+        const api = createControlApi(state.reporter, state.states, element);
+        const native = setupControl(api)(state.validator.run)(element);
 
-        state.refs.set(element, { api, native })
+        state.refs.set(element, { api, native });
 
         if (element instanceof HTMLFieldSetElement) {
-          Array.from(element.elements).forEach(mount(state))
+          (<ListedElement[]>[...element.elements]).forEach(mount(state));
         }
       }
-    }
+    };
 
 /**
  *
@@ -94,36 +93,36 @@ export const unmount =
   (state: VacoState) =>
     (element: HTMLFormElement | ListedElement): void => {
       if (!state.refs.has(element)) {
-        return
+        return;
       }
 
       if (element instanceof HTMLFormElement) {
-        Array.from(element.elements).forEach(unmount(state))
-        element.removeEventListener('submit', submitGuard)
-        teardownForm(element)
-        state.refs.delete(element)
+        (<ListedElement[]>[...element.elements]).forEach(unmount(state));
+        element.removeEventListener('submit', submitGuard);
+        teardownForm(element);
+        state.refs.delete(element);
 
-        return
+        return;
       }
 
       if (isSubmittableElement(element)) {
-        element.removeEventListener('input', state.validator.runStream)
-        state.observer.disconnect(element)
-        teardownControl(element)
-        state.refs.delete(element)
+        element.removeEventListener('input', state.validator.runStream);
+        state.observer.disconnect(element);
+        teardownControl(element);
+        state.refs.delete(element);
 
-        return
+        return;
       }
 
       if (isListedElement(element)) {
         if (element instanceof HTMLFieldSetElement) {
-          Array.from(element.elements).forEach(unmount(state))
+          (<ListedElement[]>[...element.elements]).forEach(unmount(state));
         }
 
-        teardownControl(element)
-        state.refs.delete(element)
+        teardownControl(element);
+        state.refs.delete(element);
       }
-    }
+    };
 
 /**
  *
@@ -132,16 +131,16 @@ export const unmount =
  */
 export const create =
   (options: VacoOptions): VacoState => {
-    const state = {} as VacoState
+    const state = {} as VacoState;
 
-    Object.defineProperty(state, 'reporter', { value: options.reporter ?? (() => { /* */ }) })
-    Object.defineProperty(state, 'i18n', { value: options.i18n ?? ((): null => null) })
-    Object.defineProperty(state, 'constraints', { value: options.constraints })
-    Object.defineProperty(state, 'attributes', { value: getAttributes(state.constraints) })
-    Object.defineProperty(state, 'states', { value: getValidityStates(state.constraints) })
-    Object.defineProperty(state, 'validator', { value: createValidator(state.constraints, state.i18n) })
-    Object.defineProperty(state, 'observer', { value: createObserver(state.attributes, state.validator.run) })
-    Object.defineProperty(state, 'refs', { value: new WeakMap() })
+    Object.defineProperty(state, 'refs', { value: new WeakMap() });
+    Object.defineProperty(state, 'reporter', { value: options.reporter ?? (() => { /* */ }) });
+    Object.defineProperty(state, 'i18n', { value: options.i18n ?? ((): null => null) });
+    Object.defineProperty(state, 'constraints', { value: options.constraints });
+    Object.defineProperty(state, 'attributes', { value: getAttributes(state.constraints) });
+    Object.defineProperty(state, 'states', { value: getValidityStates(state.constraints) });
+    Object.defineProperty(state, 'validator', { value: createValidator(state.refs, state.constraints, state.i18n) });
+    Object.defineProperty(state, 'observer', { value: createObserver([...state.attributes, 'value'], state.validator.run) });
 
-    return Object.freeze(state)
-  }
+    return Object.freeze(state);
+  };
