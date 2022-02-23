@@ -55,7 +55,7 @@ export const createControlApi =
  *
  * @signature create :: ControlApi -> ListedElement -> NativeControlApi
  */
-export const setupControl =
+export const patchControl =
   (api: ControlApi) =>
     (validate: CallableFunction) =>
       (control: ListedElement): NativeControlApi => {
@@ -127,7 +127,7 @@ export const setupControl =
  * @todo add documentation
  * @signature teardown :: ListedElement
  */
-export const teardownControl =
+export const resetControl =
   (control: ListedElement): void => {
     // @ts-ignore: removes overridden properties
     // noinspection JSConstantReassignment

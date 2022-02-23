@@ -63,7 +63,7 @@ export const createFormApi =
  * @param {VacoState} state
  * @param {HTMLFormElement} form
  */
-export const setupForm =
+export const patchForm =
   (api: FormApi) =>
     (form: HTMLFormElement): NativeFormApi => {
       const nativeFormApi = cloneProperties(['noValidate', 'checkValidity', 'reportValidity'], form) as NativeFormApi;
@@ -108,7 +108,7 @@ export const setupForm =
  *
  * @param {HTMLFormElement} form
  */
-export const teardownForm =
+export const resetForm =
   (form: HTMLFormElement): void => {
     // @ts-ignore: removes overridden properties
     delete form.noValidate;
