@@ -1,13 +1,11 @@
-import type { Constraint, ConstraintInternals, Constraints, I18nCallback } from './constraint';
-import type { ControlApi, NativeControlApi } from './control';
-import type { ListedElement, SubmittableElement } from './utils';
+import { Constraint, ConstraintInternals, Constraints, I18nCallback } from './constraint';
+import { ListedElement, SubmittableElement } from './utils';
+import { FormApi } from './form';
+import { ControlApi } from './control';
 import { getByAttributes } from './constraint';
-import { allSettled } from './utils';
-import { RefObject } from './core';
 
 export type Validator = {
-  run: (element: SubmittableElement) => void;
-  runStream: (event: Event) => void;
+  run: (event: Event | SubmittableElement) => void;
 };
 
 /**
@@ -29,12 +27,12 @@ export type Validator = {
  *
  * @signature validate :: ControlApi -> ConstraintInternals -> Constraints -> Function
  */
-export const validate =
-  (controlApi: ControlApi) =>
+const validate =
+  ({ resetValidityState }: ControlApi) =>
     (constraintInternals: ConstraintInternals) =>
       (constraints: Constraints) =>
         (): void => {
-          controlApi.resetValidityState();
+          resetValidityState();
 
           if (!constraintInternals.target.willValidate || Object.keys(constraints).length === 0) {
             return;
@@ -50,41 +48,37 @@ export const validate =
               constraint.validate(constraintInternals)
             ));
 
-          allSettled(runners)
+          Promise.allSettled(runners)
             .finally(() => constraintInternals.target.dispatchEvent(new CustomEvent('validated')));
         };
 
 /**
  *
  */
-export const createValidator =
-  (refs: WeakMap<HTMLFormElement | ListedElement, RefObject>, constraints: Constraints, i18n: I18nCallback): Validator => {
-    const cache: Record<string, CallableFunction> = {};
+export default
+  (refs: WeakMap<HTMLFormElement | ListedElement, ControlApi | FormApi>) =>
+    (constraints: Constraints) =>
+      (i18n: I18nCallback): Validator => {
+        const cache: Record<string, CallableFunction> = {};
 
-    const run = (element: SubmittableElement): void => {
-      const attributes = element.getAttributeNames();
-      const key = attributes.toString();
-      const t = refs.get(element);
+        return {
+          run: (event: Event | SubmittableElement): void => {
+            const element = (event instanceof Event) ? event.currentTarget as SubmittableElement : event;
+            const attributes = element.getAttributeNames();
+            const key = attributes.toString();
+            const controlApi = refs.get(element) as ControlApi | undefined;
 
-      if (!(key in cache) && t) {
-        const controlApi = t.api as ControlApi;
-        const constraintInternals = {
-          target: element,
-          localize: i18n,
-          setValidity: controlApi.setValidity,
-          nativeControlApi: t.native as NativeControlApi
+            if (!(key in cache) && controlApi) {
+              const constraintInternals = {
+                target: element,
+                localize: i18n,
+                setValidity: controlApi.setValidity,
+              };
+
+              cache[key] = validate(controlApi)(constraintInternals)(getByAttributes(constraints)(attributes));
+            }
+
+            cache[key]();
+          }
         };
-
-        // eslint-disable-next-line max-len
-        cache[key] = validate(controlApi)(constraintInternals)(getByAttributes(constraints)(attributes));
-      }
-
-      cache[key]();
-    };
-
-    return {
-      run,
-      // @todo: don't like the word runStream
-      runStream: ({ currentTarget }: Event): void => run(currentTarget as SubmittableElement)
-    };
-  };
+      };

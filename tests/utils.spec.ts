@@ -1,53 +1,14 @@
 import { test } from 'zora';
 import {
-  allSettled, isSubmitButton, isListedElement, isSubmittableElement, filterSubmitButtons,
-  filterSubmittableElements, getSubmitButton, getSubmittableElements, getSubmitter,
-  RejectedElementObject, ResolvedElementObject,
+  isSubmitButton,
+  isListedElement,
+  isSubmittableElement,
+  filterSubmitButtons,
+  filterSubmittableElements,
+  getSubmitButton,
+  getSubmittableElements,
+  getSubmitter,
 } from '../lib/utils';
-
-test(
-  'allSettled :: When called with a list of mixed types, expect a type error',
-  async (assert) => {
-    const invalidParameterType = Promise.resolve(true);
-    const invalidList = [Promise.resolve(true), 'invalid'];
-    const validList = [Promise.resolve(true), Promise.reject(new Error('error'))];
-
-    assert.throws(
-      // @ts-ignore test
-      allSettled.bind(null, invalidParameterType),
-      TypeError,
-      'throws for invalid parameter type',
-    );
-    assert.throws(
-      // @ts-ignore test
-      allSettled.bind(null, invalidList),
-      TypeError,
-      'throws for non promise based entries',
-    );
-    await allSettled(validList)
-      .finally(() => {
-        assert.ok(
-          true,
-          'does not throw for only promise based entries',
-        );
-      });
-  },
-);
-
-test(
-  'allSettled :: When called with a list of promises, expect the result to be an ordered list of status descriptions',
-  async (assert) => {
-    const error = new Error('error');
-    const resolvedElementObject: ResolvedElementObject = { status: 'fulfilled', value: true };
-    const rejectedElementObject: RejectedElementObject = { status: 'rejected', reason: error };
-
-    assert.equal(
-      await allSettled([Promise.resolve(true), Promise.reject(error)]),
-      [resolvedElementObject, rejectedElementObject],
-      'output order matches input order',
-    );
-  },
-);
 
 test(
   'isSubmitButton :: When called with a candidate, expect result to be positive for submit buttons',

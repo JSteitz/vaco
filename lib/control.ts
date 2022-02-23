@@ -1,50 +1,52 @@
-import type { ValidationMessages, ValidityStateFlags } from './api';
-import type { ListedElement } from './utils';
+import { VacoState } from '.';
 import {
-  checkValidity, createValidityState, getValidationMessage, reportValidity, resetValidity,
-  setCustomValidity, setValidity, willValidate
+  checkValidity,
+  createValidityState,
+  getValidationMessage,
+  reportValidity,
+  resetValidity,
+  setCustomValidity,
+  setValidity,
+  ValidationMessages,
+  ValidityStateFlags,
 } from './api';
-import { cloneProperties } from './utils';
-
-export type NativeControlApi = {
-  validationMessage: string;
-  validity: ValidityState;
-  willValidate: boolean;
-  checkValidity(): boolean;
-  reportValidity(): boolean;
-  setCustomValidity(validationMessage: string): void;
-};
+import {
+  isSubmittableElement,
+  ListedElement
+} from './utils';
 
 export type ControlApi = {
-  willValidate(): boolean;
-  checkValidity(): boolean;
-  reportValidity(): boolean;
-  setValidity(flags: ValidityStateFlags, message?: string): void;
-  setCustomValidity(validationMessage: string): void;
-  getValidationMessage(): string;
-  resetValidityState(): void;
-  createValidityState(): ValidityState;
+  setValidity: (flags: ValidityStateFlags, message?: string) => void;
+  resetValidityState: () => void;
+  reset: () => void;
 };
 
 /**
  * @todo add documentation
- * @signature create :: CallableFunction -> [string] -> ListedElement -> ControlApiInterface
+ * @signature reset :: VacoState -> ListedElement -> () -> void
  */
-export const createControlApi =
-  (reporter: CallableFunction, flags: string[], control: ListedElement): ControlApi => {
-    const validationMessages: ValidationMessages = {};
+const reset =
+  ({ validator, observer }: VacoState) =>
+    (control: ListedElement) =>
+      (): void => {
+        if (isSubmittableElement(control)) {
+          observer.disconnect(control);
+          control.removeEventListener('input', validator.run);
+        }
 
-    return {
-      willValidate: willValidate(control),
-      checkValidity: checkValidity(control),
-      reportValidity: reportValidity(reporter)(control),
-      setValidity: setValidity(validationMessages)(control),
-      setCustomValidity: setCustomValidity(validationMessages)(control),
-      getValidationMessage: getValidationMessage(validationMessages)(control),
-      resetValidityState: resetValidity(validationMessages)(control)(flags),
-      createValidityState: createValidityState(flags)
-    };
-  };
+        // @ts-ignore: removes overridden properties
+        delete control.validationMessage;
+        // @ts-ignore: removes overridden properties
+        delete control.validity;
+        // @ts-ignore: removes overridden properties
+        delete control.setCustomValidity;
+        // @ts-ignore: removes overridden properties
+        delete control.checkValidity;
+        // @ts-ignore: removes overridden properties
+        delete control.reportValidity;
+        // @ts-ignore: removes overridden properties
+        delete control.value;
+      };
 
 /**
  * Setup control with the validation api
@@ -53,95 +55,69 @@ export const createControlApi =
  * Creates the validation api for the given element and binds some of them as public methods to the
  * element itself. Afterwards it return the api.
  *
- * @signature create :: ControlApi -> ListedElement -> NativeControlApi
+ * @signature create :: VacoState -> ListedElement -> ControlApi
  */
-export const patchControl =
-  (api: ControlApi) =>
-    (validate: CallableFunction) =>
-      (control: ListedElement): NativeControlApi => {
-        const validity = api.createValidityState();
-        const nativeControlApi = cloneProperties(
-          ['willValidate', 'validity', 'validationMessage', 'setCustomValidity', 'checkValidity', 'reportValidity'],
-          control
-        ) as NativeControlApi;
-        const prototype = Object.getPrototypeOf(control);
-        const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
-        const getter = Object.getOwnPropertyDescriptor(prototype, 'value')?.get;
+export default
+  ({ reporter, states, validator, observer }: VacoState) =>
+    (control: ListedElement): ControlApi => {
+      const validationMessages: ValidationMessages = {};
+      const validity = createValidityState(states);
+      const prototype = Object.getPrototypeOf(control);
+      const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+      const getter = Object.getOwnPropertyDescriptor(prototype, 'value')?.get;
 
-        // Override with custom api
-        Object.defineProperty(control, 'willValidate', {
-          configurable: true,
-          enumerable: true,
-          get: api.willValidate
-        });
+      Object.defineProperty(control, 'validationMessage', {
+        configurable: true,
+        enumerable: true,
+        get: getValidationMessage(validationMessages)(control)
+      });
 
-        Object.defineProperty(control, 'validationMessage', {
-          configurable: true,
-          enumerable: true,
-          get: api.getValidationMessage
-        });
+      Object.defineProperty(control, 'validity', {
+        configurable: true,
+        enumerable: true,
+        get: (): ValidityState => validity
+      });
 
-        Object.defineProperty(control, 'validity', {
-          configurable: true,
-          enumerable: true,
-          get: (): ValidityState => validity
-        });
+      Object.defineProperty(control, 'setCustomValidity', {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: setCustomValidity(validationMessages)(control)
+      });
 
-        Object.defineProperty(control, 'setCustomValidity', {
-          configurable: true,
-          enumerable: true,
-          writable: true,
-          value: api.setCustomValidity
-        });
+      Object.defineProperty(control, 'checkValidity', {
+        configurable: true,
+        enumerable: true,
+        value: checkValidity(control)
+      });
 
-        Object.defineProperty(control, 'checkValidity', {
-          configurable: true,
-          enumerable: true,
-          value: api.checkValidity
-        });
+      Object.defineProperty(control, 'reportValidity', {
+        configurable: true,
+        enumerable: true,
+        value: reportValidity(reporter)(control)
+      });
 
-        Object.defineProperty(control, 'reportValidity', {
-          configurable: true,
-          enumerable: true,
-          value: api.reportValidity
-        });
-
+      if (isSubmittableElement(control)) {
         Object.defineProperty(control, 'value', {
           configurable: true,
           enumerable: true,
-          set(...args: any) {
-            setter?.apply(this, args);
-            validate(control);
+          set(value: unknown) {
+            setter?.apply(this, [value]);
+            validator.run(control);
           },
-          get(...args: any) {
-            return getter?.apply(this, args);
+          get() {
+            return getter?.apply(this);
           }
         });
 
-        control.addEventListener('input', (): void => validate(control));
+        observer.connect(control);
+        control.addEventListener('input', validator.run);
+        validator.run(control);
+      }
 
-        return nativeControlApi;
+      return {
+        setValidity: setValidity(validationMessages)(control),
+        resetValidityState: resetValidity(validationMessages)(control)(states),
+        reset: reset({ validator, observer } as VacoState)(control)
       };
-
-/**
- * @todo add documentation
- * @signature teardown :: ListedElement
- */
-export const resetControl =
-  (control: ListedElement): void => {
-    // @ts-ignore: removes overridden properties
-    // noinspection JSConstantReassignment
-    delete control.willValidate;
-    // @ts-ignore: removes overridden properties
-    // noinspection JSConstantReassignment
-    delete control.validationMessage;
-    // @ts-ignore: removes overridden properties
-    // noinspection JSConstantReassignment
-    delete control.validity;
-    // @ts-ignore: removes overridden properties
-    delete control.setCustomValidity;
-    // @ts-ignore: removes overridden properties
-    delete control.checkValidity;
-    // @ts-ignore: removes overridden properties
-    delete control.reportValidity;
-  };
+    };

@@ -1,6 +1,9 @@
 import { test } from 'zora';
 import {
-  getByAttributes, getValidityStates, getAttributes, Constraint,
+  getByAttributes,
+  getValidityStates,
+  getAttributes,
+  Constraint,
 } from '../lib/constraint';
 
 test(

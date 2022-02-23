@@ -1,14 +1,11 @@
-import type { ReporterCallback } from './api';
-import type { Constraints, I18nCallback } from './constraint';
-import type { Observer } from './observer';
-import type { ListedElement } from './utils';
-import type { Validator } from './validator';
+import { ReporterCallback } from './api';
+import { Constraints, I18nCallback } from './constraint';
 import { getAttributes, getValidityStates } from './constraint';
-import { ControlApi, createControlApi, patchControl, resetControl } from './control';
-import { createFormApi, FormApi, patchForm, submitGuard, resetForm } from './form';
-import { createObserver } from './observer';
-import { isListedElement, isSubmittableElement } from './utils';
-import { createValidator } from './validator';
+import { isListedElement, ListedElement } from './utils';
+import createObserver, { Observer } from './observer';
+import createValidator, { Validator } from './validator';
+import patchControl, { ControlApi } from './control';
+import patchForm, { FormApi } from './form';
 
 // @todo add documentation to all functions and types
 export type VacoOptions = {
@@ -25,12 +22,7 @@ export type VacoState = {
   readonly validator: Validator;
   readonly i18n: I18nCallback;
   readonly observer: Observer;
-  readonly refs: WeakMap<HTMLFormElement | ListedElement, RefObject>;
-};
-
-export type RefObject = {
-  readonly api: FormApi | ControlApi;
-  readonly native: Record<string, unknown>;
+  readonly refs: WeakMap<HTMLFormElement | ListedElement, FormApi | ControlApi>;
 };
 
 export const VACO = Symbol('Vaco');
@@ -49,38 +41,15 @@ export const patch =
       }
 
       if (element instanceof HTMLFormElement) {
-        const api = createFormApi(state.reporter, element);
-        const native = patchForm(api)(element);
-
-        state.refs.set(element, { api, native });
-
-        element.addEventListener('submit', submitGuard);
-        (<ListedElement[]>[...element.elements]).forEach(patch(state));
-
-        return;
-      }
-
-      if (isSubmittableElement(element)) {
-        const api = createControlApi(state.reporter, state.states, element);
-        const native = patchControl(api)(state.validator.run)(element);
-
-        state.refs.set(element, { api, native });
-
-        state.observer.connect(element);
-        state.validator.run(element);
-
-        return;
+        state.refs.set(element, patchForm(state)(element));
       }
 
       if (isListedElement(element)) {
-        const api = createControlApi(state.reporter, state.states, element);
-        const native = patchControl(api)(state.validator.run)(element);
+        state.refs.set(element, patchControl(state)(element));
+      }
 
-        state.refs.set(element, { api, native });
-
-        if (element instanceof HTMLFieldSetElement) {
-          (<ListedElement[]>[...element.elements]).forEach(patch(state));
-        }
+      if ('elements' in element) {
+        (<ListedElement[]>[...element.elements]).forEach(patch(state));
       }
     };
 
@@ -96,31 +65,11 @@ export const reset =
         return;
       }
 
-      if (element instanceof HTMLFormElement) {
+      state.refs.get(element)?.reset();
+      state.refs.delete(element);
+
+      if ('elements' in element) {
         (<ListedElement[]>[...element.elements]).forEach(reset(state));
-        element.removeEventListener('submit', submitGuard);
-        resetForm(element);
-        state.refs.delete(element);
-
-        return;
-      }
-
-      if (isSubmittableElement(element)) {
-        element.removeEventListener('input', state.validator.runStream);
-        state.observer.disconnect(element);
-        resetControl(element);
-        state.refs.delete(element);
-
-        return;
-      }
-
-      if (isListedElement(element)) {
-        if (element instanceof HTMLFieldSetElement) {
-          (<ListedElement[]>[...element.elements]).forEach(reset(state));
-        }
-
-        resetControl(element);
-        state.refs.delete(element);
       }
     };
 
@@ -139,8 +88,8 @@ export const create =
     Object.defineProperty(state, 'constraints', { value: options.constraints });
     Object.defineProperty(state, 'attributes', { value: getAttributes(state.constraints) });
     Object.defineProperty(state, 'states', { value: getValidityStates(state.constraints) });
-    Object.defineProperty(state, 'validator', { value: createValidator(state.refs, state.constraints, state.i18n) });
-    Object.defineProperty(state, 'observer', { value: createObserver([...state.attributes, 'value'], state.validator.run) });
+    Object.defineProperty(state, 'validator', { value: createValidator(state.refs)(state.constraints)(state.i18n) });
+    Object.defineProperty(state, 'observer', { value: createObserver([...state.attributes, 'value'])(state.validator.run) });
 
     return Object.freeze(state);
   };

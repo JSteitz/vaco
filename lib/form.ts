@@ -1,16 +1,9 @@
-import { cloneProperties, SubmittableElement, getSubmitButton, getSubmitter } from './utils';
+import { VacoState } from '.';
+import { getSubmitButton, getSubmitter } from './utils';
 import { interactivelyValidate, staticallyValidate } from './api';
 
-
-export type NativeFormApi = {
-  noValidate: boolean;
-  checkValidity(): boolean;
-  reportValidity(): boolean;
-};
-
 export type FormApi = {
-  checkValidity(): boolean | SubmittableElement[];
-  reportValidity(): boolean | SubmittableElement[];
+  reset: () => void;
 };
 
 /**
@@ -22,7 +15,7 @@ export type FormApi = {
  *
  * @param {Event} event
  */
-export const submitGuard =
+const submitGuard =
   (event: Event): void => {
     const form = event.currentTarget as HTMLFormElement;
     const submitter = getSubmitter(form);
@@ -44,14 +37,22 @@ export const submitGuard =
   };
 
 /**
- * @todo add documentation
- * @signature createFormApi :: CallableFunction -> HTMLFormElement -> FormApi
+ * Reset to original validation constraint properties
+ *
+ * @param {HTMLFormElement} form
  */
-export const createFormApi =
-  (reporter: CallableFunction, form: HTMLFormElement): FormApi => ({
-    checkValidity: staticallyValidate(form),
-    reportValidity: interactivelyValidate(reporter)(form)
-  });
+const reset =
+  (form: HTMLFormElement) =>
+    (): void => {
+      form.removeEventListener('submit', submitGuard);
+
+      // @ts-ignore: removes overridden properties
+      delete form.noValidate;
+      // @ts-ignore: removes overridden properties
+      delete form.checkValidity;
+      // @ts-ignore: removes overridden properties
+      delete form.reportValidity;
+    };
 
 /**
  * Disable native form validation and inject the custom
@@ -59,14 +60,12 @@ export const createFormApi =
  *
  * Methods: checkValidity, reportValidity
  * Properties: noValidate
- *
- * @param {VacoState} state
- * @param {HTMLFormElement} form
  */
-export const patchForm =
-  (api: FormApi) =>
-    (form: HTMLFormElement): NativeFormApi => {
-      const nativeFormApi = cloneProperties(['noValidate', 'checkValidity', 'reportValidity'], form) as NativeFormApi;
+export default
+  ({ reporter }: VacoState) =>
+    (form: HTMLFormElement): FormApi => {
+      const checkValidity = staticallyValidate(form);
+      const reportValidity = interactivelyValidate(reporter)(form);
 
       // Disable native constraint validation and replace the attribute
       // @see https://html.spec.whatwg.org/#concept-fs-novalidate
@@ -91,29 +90,18 @@ export const patchForm =
       Object.defineProperty(form, 'checkValidity', {
         configurable: true,
         enumerable: true,
-        value: (): boolean => api.checkValidity() === true
+        value: (): boolean => checkValidity() === true
       });
 
       Object.defineProperty(form, 'reportValidity', {
         configurable: true,
         enumerable: true,
-        value: (): boolean => api.reportValidity() === true
+        value: (): boolean => reportValidity() === true
       });
 
-      return nativeFormApi;
-    };
+      form.addEventListener('submit', submitGuard);
 
-/**
- * Reset to original validation constraint properties
- *
- * @param {HTMLFormElement} form
- */
-export const resetForm =
-  (form: HTMLFormElement): void => {
-    // @ts-ignore: removes overridden properties
-    delete form.noValidate;
-    // @ts-ignore: removes overridden properties
-    delete form.checkValidity;
-    // @ts-ignore: removes overridden properties
-    delete form.reportValidity;
-  };
+      return {
+        reset: reset(form)
+      };
+    };

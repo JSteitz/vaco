@@ -1,7 +1,6 @@
 import { test } from 'zora';
 import { noop, spy } from './helpers';
 import {
-  ValidationMessages,
   isBarredFromConstraintValidation,
   setValidity,
   setCustomValidity,
@@ -10,13 +9,14 @@ import {
   willValidate,
   getValidationMessage,
   createValidityState,
-  ValidityStateFlags
+  ValidationMessages,
+  ValidityStateFlags,
 } from '../lib/api';
 
 test(
   'createValidityState :: Creates a validity state object',
   (assert) => {
-    const result = createValidityState(['badInput'])();
+    const result = createValidityState(['badInput']);
 
     assert.ok('badInput' in result, 'given flags exist');
     assert.equal(result.badInput, false, 'given flags are set to false');
@@ -42,12 +42,6 @@ test(
     assert.throws(
       setValidity({})(input).bind(null, { customError: true }, ''),
       'throws for empty message'
-    );
-
-    setValidity({})(input)({ customError: false });
-    assert.ok(
-      true,
-      'does not throw for negative flag'
     );
   }
 );

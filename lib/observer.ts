@@ -16,7 +16,7 @@ export type Observer = {
  *
  * @signature connect :: Observables -> MutationObserver -> MutationObserverInit -> ObservableElement -> Observables
  */
-export const connect =
+const connect =
   (observables: Observables) =>
     (observer: MutationObserver) =>
       (options: MutationObserverInit) =>
@@ -31,7 +31,7 @@ export const connect =
  *
  * @signature disconnect :: Observables -> MutationObserver -> MutationObserverInit -> ObservableElement -> Observables
  */
-export const disconnect =
+const disconnect =
   (observables: Observables) =>
     (observer: MutationObserver) =>
       (options: MutationObserverInit) =>
@@ -52,7 +52,7 @@ export const disconnect =
  * @internal
  * @signature attributeMutationCallback :: ObserverCallbackArg -> MutationRecord[] -> void
  */
-export const attributeMutationCallback =
+const attributeMutationCallback =
   (onChange: ObserverCallbackArg): MutationCallback =>
     (records: MutationRecord[]): void => {
       const uniq = new Set();
@@ -75,19 +75,20 @@ export const attributeMutationCallback =
  *
  * @signature createAttributeObserver :: (string[], ObserverCallbackArg) -> Observer
  */
-export const createObserver =
-  (attributes: string[], onChange: ObserverCallbackArg): Observer => {
-    const mutationObserver = new MutationObserver(attributeMutationCallback(onChange));
-    const options = { attributes: true, attributeFilter: attributes };
-    let observables = new Set<Observable>();
+export default
+  (attributes: string[]) =>
+    (onChange: ObserverCallbackArg): Observer => {
+      const mutationObserver = new MutationObserver(attributeMutationCallback(onChange));
+      const options = { attributes: true, attributeFilter: attributes };
+      let observables = new Set<Observable>();
 
-    return {
-      connect: (element: Observable): void => {
-        observables = connect(observables)(mutationObserver)(options)(element);
-      },
+      return {
+        connect: (element: Observable): void => {
+          observables = connect(observables)(mutationObserver)(options)(element);
+        },
 
-      disconnect: (element: Observable): void => {
-        observables = disconnect(observables)(mutationObserver)(options)(element);
-      }
+        disconnect: (element: Observable): void => {
+          observables = disconnect(observables)(mutationObserver)(options)(element);
+        }
+      };
     };
-  };

@@ -1,5 +1,4 @@
 import type { ValidityStateFlags } from './api';
-import type { NativeControlApi } from './control';
 import type { SubmittableElement } from './utils';
 
 export type Constraints = { [key: string]: Constraint; };
@@ -14,14 +13,6 @@ export type ConstraintInternals = {
    * @readonly
    */
   readonly target: SubmittableElement;
-
-  /**
-   * Collection of all native properties of the validation constraint api for the internal target
-   *
-   * @var {NativeControlApi}
-   * @readonly
-   */
-  readonly nativeControlApi: NativeControlApi;
 
   /**
    * Request localizing a key with the control name and optional attribute values.

@@ -36,16 +36,15 @@ export const ValidityStateDescriptor =
  * All flags are initially set to false and the valid property to true.
  * The flag "custom" error is always included and should not be in list.
  *
- * @signature createValidityState :: [string] -> () -> ValidityState
+ * @signature createValidityState :: [string] -> ValidityState
  */
 export const createValidityState =
-  (flags: string[]) =>
-    (): ValidityState =>
-      Object.create(null, flags.reduce(
-        (result: PropertyDescriptorMap, flag: string) =>
-          ({ ...result, [flag]: ValidityStateDescriptor(false) }),
-        { customError: ValidityStateDescriptor(false), valid: ValidityStateDescriptor(true) }
-      ));
+  (flags: string[]): ValidityState =>
+    Object.create(null, flags.reduce(
+      (result: PropertyDescriptorMap, flag: string) =>
+        ({ ...result, [flag]: ValidityStateDescriptor(false) }),
+      { customError: ValidityStateDescriptor(false), valid: ValidityStateDescriptor(true) }
+    ));
 
 /**
  * Test if internals target element has no validity problems

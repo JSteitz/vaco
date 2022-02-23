@@ -53,48 +53,6 @@ export type SubmitButton =
   | HTMLButtonElement
   | (HTMLInputElement & { type: 'submit'; });
 
-export interface ResolvedElementObject {
-  status: string;
-  value: unknown;
-}
-
-export interface RejectedElementObject {
-  status: string;
-  reason: unknown;
-}
-
-/**
- * The method returns a promise that resolves after all of the given promises
- * have either resolved or rejected, with an array of objects that each
- * describes the outcome of each promise.
- *
- * @signature allSettled :: Promise -> ???
- */
-export const allSettled = (
-  promises: Promise<unknown>[]
-): Promise<Array<ResolvedElementObject | RejectedElementObject>> =>
-  Promise.all(
-    promises.map((promise: Promise<unknown>) => {
-      if (!(promise instanceof Promise)) {
-        throw new TypeError(`${typeof promise} is not a type of Promise`);
-      }
-
-      return promise
-        .then(
-          (result: unknown): ResolvedElementObject => ({
-            status: 'fulfilled',
-            value: result,
-          })
-        )
-        .catch(
-          (result: unknown): RejectedElementObject => ({
-            status: 'rejected',
-            reason: result,
-          })
-        );
-    })
-  );
-
 export const isListedElement = (node: Node): node is SubmittableElement =>
   node instanceof HTMLElement &&
   ([
@@ -186,20 +144,3 @@ export const getSubmitter = (form: HTMLFormElement): SubmitButton | null =>
     && document.activeElement.form === form
     ? document.activeElement
     : null;
-
-/**
- * Partially clone a object by providing properties
- *
- * @signature cloneProperties :: (string[], T) -> T
- */
-export const cloneProperties = <T>(properties: string[], obj: T): Partial<T> => {
-  const clone = {};
-
-  properties.forEach((property: string): void => {
-    if (property in obj) {
-      clone[property] = obj[property];
-    }
-  });
-
-  return clone;
-};
