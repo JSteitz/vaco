@@ -151,6 +151,9 @@ export const setValidity =
           throw new TypeError('Message can not be empty for the given flags');
         }
 
+        /* support for css pseudo classes ":invalid" and ":valid" */
+        Object.getPrototypeOf(element).setCustomValidity.apply(element, [message || '']);
+
         Object.entries(flags).forEach(([flag, value]) => {
           Object.defineProperty(element.validity, flag, ValidityStateDescriptor(value));
 
