@@ -54,12 +54,13 @@ const driver = new WebDriver.Builder()
   .forBrowser(WebDriver.Browser.CHROME)
   .build();
 
-
 driver.get(`file://${path.resolve('tests/index.html')}`)
   .then(runTests(driver))
   .then(evaluateTestResults(driver))
-  .finally(() => driver.quit())
-  .then(process.exit)
+  .then((exitCode) => {
+    driver.quit();
+    process.exit(exitCode);
+  })
   .catch((error) => {
     console.error(error);
     process.exit(1);
