@@ -84,26 +84,6 @@ export const getValidationMessage =
         (element.willValidate ? Object.values(validationMessages)[0] ?? '' : '');
 
 /**
- * Test element if it is a candidate for constraint validation
- *
- * @see https://html.spec.whatwg.org/#barred-from-constraint-validation
- *
- * @signature isBarredFromConstraintValidation :: SubmittableElement -> boolean
- */
-export const isBarredFromConstraintValidation =
-  (element: SubmittableElement): boolean => (
-    element instanceof HTMLObjectElement
-    || element instanceof HTMLFieldSetElement
-    || element.type === 'hidden'
-    || element.type === 'reset'
-    || element.type === 'button'
-    || ('readOnly' in element && element.readOnly)
-    || element.disabled
-    || element.hidden
-    || element.closest('datalist') !== null
-  );
-
-/**
  * Test if internals target element has no validity problems and report to user
  *
  * Returns the current validity state for the internals target element and
@@ -225,16 +205,6 @@ export const setCustomValidity =
           { customError: validationMessage?.length > 0 ?? false },
           validationMessage
         );
-
-/**
- * Test if internals target element will be validated
- *
- * @signature willValidate :: ListedElement -> f -> boolean
- */
-export const willValidate =
-  (element: ListedElement) =>
-    (): boolean =>
-      isSubmittableElement(element) && !isBarredFromConstraintValidation(element);
 
 /**
  * Test all submittable elements for the provided form and report to user

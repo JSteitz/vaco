@@ -1,12 +1,10 @@
 import { test } from 'zora';
 import { noop, spy } from './helpers';
 import {
-  isBarredFromConstraintValidation,
   setValidity,
   setCustomValidity,
   checkValidity,
   reportValidity,
-  willValidate,
   getValidationMessage,
   createValidityState,
   ValidationMessages,
@@ -329,93 +327,6 @@ test(
 
     reportValidity(reporter)(inputValid)();
     assert.equal(reporter.callCount, 0, 'validityReporter is not invoked for invalid inputs');
-  }
-);
-
-test(
-  'isBarredFromConstraintValidation :: Test all barred submittable elements',
-  (assert) => {
-    const fieldset = document.createElement('fieldset');
-    const object = document.createElement('object');
-    const inputTypeHidden = document.createElement('input');
-    const inputTypeReset = document.createElement('input');
-    const inputTypeButton = document.createElement('input');
-    const readOnly = document.createElement('input');
-    const disabled = document.createElement('input');
-    const hidden = document.createElement('input');
-    const datalist = document.createElement('datalist');
-    const inDatalist = document.createElement('input');
-    const buttonTypeReset = document.createElement('button');
-
-    inputTypeHidden.type = 'hidden';
-    inputTypeReset.type = 'reset';
-    inputTypeButton.type = 'button';
-    readOnly.readOnly = true;
-    disabled.disabled = true;
-    hidden.hidden = true;
-    datalist.appendChild(inDatalist);
-    buttonTypeReset.type = 'reset';
-
-    assert.ok(
-      isBarredFromConstraintValidation(fieldset),
-      'fieldset is barred from constraint validation'
-    );
-
-    assert.ok(
-      isBarredFromConstraintValidation(object),
-      'object is barred from constraint validation'
-    );
-
-    assert.ok(
-      isBarredFromConstraintValidation(inputTypeHidden),
-      'input[type="hidden"] is barred from constraint validation'
-    );
-
-    assert.ok(
-      isBarredFromConstraintValidation(inputTypeReset),
-      'input[type"reset"] is barred from constraint validation'
-    );
-
-    assert.ok(
-      isBarredFromConstraintValidation(inputTypeButton),
-      'input[type"button"] is barred from constraint validation'
-    );
-
-    assert.ok(
-      isBarredFromConstraintValidation(readOnly),
-      'input[readonly] is barred from constraint validation'
-    );
-
-    assert.ok(
-      isBarredFromConstraintValidation(disabled),
-      'input[disabled] is barred from constraint validation'
-    );
-
-    assert.ok(
-      isBarredFromConstraintValidation(hidden),
-      'input[hidden] is barred from constraint validation'
-    );
-
-    assert.ok(
-      isBarredFromConstraintValidation(inDatalist),
-      'input in datalist is barred from constraint validation'
-    );
-
-    assert.ok(
-      isBarredFromConstraintValidation(buttonTypeReset),
-      'button[type="reset"] is barred from constraint validation'
-    );
-  }
-);
-
-test(
-  'willValidate :: Test elements for the ability to validate',
-  (assert) => {
-    const barredElement = document.createElement('object');
-    const notBarredElement = document.createElement('input');
-
-    assert.notOk(willValidate(barredElement)(), 'barred element will not validate');
-    assert.ok(willValidate(notBarredElement)(), 'not barred element will validate');
   }
 );
 
