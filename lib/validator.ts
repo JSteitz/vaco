@@ -6,6 +6,7 @@ import { getByAttributes } from './constraint';
 
 export type Validator = {
   run: (event: Event | SubmittableElement) => void;
+  updateAndRun: (event: Event | SubmittableElement) => void;
 };
 
 /**
@@ -59,26 +60,36 @@ export default
   (refs: WeakMap<HTMLFormElement | ListedElement, ControlApi | FormApi>) =>
     (constraints: Constraints) =>
       (i18n: I18nCallback): Validator => {
-        const cache: Record<string, CallableFunction> = {};
+        const cache = new WeakMap<SubmittableElement, CallableFunction>();
 
         return {
-          run: (event: Event | SubmittableElement): void => {
+          updateAndRun: (event: Event | SubmittableElement): void => {
             const element = (event instanceof Event) ? event.currentTarget as SubmittableElement : event;
             const attributes = element.getAttributeNames();
-            const key = attributes.toString();
             const controlApi = refs.get(element) as ControlApi | undefined;
 
-            if (!(key in cache) && controlApi) {
+            if (controlApi) {
               const constraintInternals = {
                 target: element,
                 localize: i18n,
                 setValidity: controlApi.setValidity,
               };
 
-              cache[key] = validate(controlApi)(constraintInternals)(getByAttributes(constraints)(attributes));
+              cache.set(element, validate(controlApi)(constraintInternals)(getByAttributes(constraints)(attributes)));
             }
 
-            cache[key]();
+            if (cache.has(element)) {
+              // @ts-ignore see https://github.com/microsoft/TypeScript/issues/21732
+              cache.get(element)();
+            }
+          },
+          run: (event: Event | SubmittableElement): void => {
+            const element = (event instanceof Event) ? event.currentTarget as SubmittableElement : event;
+
+            if (cache.has(element)) {
+              // @ts-ignore see https://github.com/microsoft/TypeScript/issues/21732
+              cache.get(element)();
+            }
           }
         };
       };

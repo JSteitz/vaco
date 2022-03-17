@@ -1,5 +1,5 @@
 import type { ListedElement, SubmittableElement } from './utils';
-import { getSubmittableElements, isSubmittableElement } from './utils';
+import { getSubmittableElements } from './utils';
 
 declare global {
   interface ValidityState {
