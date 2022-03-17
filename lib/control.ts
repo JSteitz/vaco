@@ -112,7 +112,6 @@ export default
 
         observer.connect(control);
         control.addEventListener('input', validator.run);
-        validator.updateAndRun(control);
       }
 
       return {

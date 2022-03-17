@@ -46,6 +46,8 @@ export const patch =
 
       if (isListedElement(element)) {
         state.refs.set(element, patchControl(state)(element));
+        // update depence on an existing refs
+        state.validator.updateAndRun(element);
       }
 
       if ('elements' in element) {
