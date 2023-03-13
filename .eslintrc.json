@@ -13,7 +13,8 @@
     "@typescript-eslint"
   ],
   "ignorePatterns": [
-    "dist/*"
+    "dist/*",
+    "tests/*"
   ],
   "rules": {
     "@typescript-eslint/ban-ts-comment": [
@@ -26,10 +27,6 @@
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": 2020,
-    "sourceType": "module",
-    "ecmaFeatures": {
-      "generators": false,
-      "objectLiteralDuplicateProperties": false
-    }
+    "sourceType": "module"
   }
 }

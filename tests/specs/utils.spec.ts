@@ -8,7 +8,7 @@ import {
   getSubmitButton,
   getSubmittableElements,
   getSubmitter,
-} from '../lib/utils';
+} from '../../lib/utils';
 
 test(
   'isSubmitButton :: When called with a candidate, expect result to be positive for submit buttons',

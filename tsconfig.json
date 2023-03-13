@@ -3,13 +3,12 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
     "incremental": true,
-    "noImplicitAny": false,
     "sourceMap": true,
     "strict": true
   },
-  "exclude": [
-    "node_modules"
+  "include": [
+    "lib/**/*.ts",
+    "tests/**/*.spec.ts"
   ]
 }

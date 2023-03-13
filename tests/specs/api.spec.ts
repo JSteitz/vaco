@@ -1,5 +1,5 @@
 import { test } from 'zora';
-import { noop, spy } from './helpers';
+import { spy, noop } from '../utils';
 import {
   setValidity,
   setCustomValidity,
@@ -9,7 +9,7 @@ import {
   createValidityState,
   ValidationMessages,
   ValidityStateFlags,
-} from '../lib/api';
+} from '../../lib/api';
 
 test(
   'createValidityState :: Creates a validity state object',

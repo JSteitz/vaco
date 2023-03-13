@@ -4,7 +4,7 @@ import {
   getValidityStates,
   getAttributes,
   Constraint,
-} from '../lib/constraint';
+} from '../../lib/constraint';
 
 test(
   'getByAttributes :: When called with a list of constraints and a list of predicates, expect to get a sublist of the constraints',

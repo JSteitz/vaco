@@ -4,7 +4,7 @@ export type Spy = {
   readonly callArgs: [];
 };
 
-export const spy = (): Spy => {
+export function spy(): Spy {
   let callCount = 0;
   const callArgs: unknown[] = [];
 
@@ -19,6 +19,7 @@ export const spy = (): Spy => {
   });
 
   return fn as Spy;
-};
+}
 
-export const noop = (): void => { /**/ };
+export function noop(): void { /**/ }
+

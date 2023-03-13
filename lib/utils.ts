@@ -54,17 +54,10 @@ export type SubmitButton =
   | (HTMLInputElement & { type: 'submit'; });
 
 export const isListedElement = (node: Node): node is SubmittableElement =>
-  node instanceof HTMLElement &&
-  ([
-    'button',
-    'fieldset',
-    'input',
-    'object',
-    'output',
-    'select',
-    'textarea',
-  ].includes(node.localName) ||
-    ('constructor' in node && 'formAssociated' in node.constructor));
+  node instanceof HTMLElement && (
+    ['button', 'fieldset', 'input', 'object', 'output', 'select', 'textarea',].includes(node.localName)
+    || ('constructor' in node && 'formAssociated' in node.constructor)
+  );
 
 /**
  * Test if given node is a submittable element
@@ -77,8 +70,7 @@ export const isListedElement = (node: Node): node is SubmittableElement =>
  * @signature isSubmittableElement :: Node -> boolean
  */
 export const isSubmittableElement = (node: Node): node is SubmittableElement =>
-  node instanceof HTMLElement
-  && (
+  node instanceof HTMLElement && (
     ['button', 'input', 'object', 'select', 'textarea'].includes(node.localName)
     || ('constructor' in node && 'formAssociated' in node.constructor)
   );
@@ -133,7 +125,7 @@ export const getSubmittableElements = (element: HTMLFormElement | HTMLFieldSetEl
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/submit_event
  *
- * The last active element before the submit is tested if is an instance of a
+ * The last active element before the submit is tested is an instance of a
  * submit button that belongs to the submitted form.
  *
  * @signature getSubmitter :: HTMlFormElement -> SubmitButton
