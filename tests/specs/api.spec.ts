@@ -32,15 +32,8 @@ test(
   (assert) => {
     const input = document.createElement('input');
 
-    assert.throws(
-      setValidity({})(input).bind(null, { customError: true }),
-      'throws for missing message'
-    );
-
-    assert.throws(
-      setValidity({})(input).bind(null, { customError: true }, ''),
-      'throws for empty message'
-    );
+    assert.throws(setValidity.bind(null, {}, input, { customError: true }, undefined), 'throws for missing message');
+    assert.throws(setValidity.bind(null, {}, input, { customError: true }, ''), 'throws for empty message');
   }
 );
 
@@ -52,15 +45,12 @@ test(
 
     Object.defineProperty(invalidInput, 'willValidate', { value: false });
 
-    setValidity({})(invalidInput)({ customError: true }, 'validation message');
-    assert.equal(
-      invalidInput.validity.customError,
-      false,
-      'does not change validity for invalid inputs'
-    );
+    assert.equal(invalidInput.validity.customError, false, 'initial state verified');
+    setValidity({}, invalidInput, { customError: true }, 'validation message');
+    assert.equal(invalidInput.validity.customError, false, 'does not change validity for invalid inputs');
 
     assert.equal(input.validity.customError, false, 'initial state verified');
-    setValidity({})(input)({ customError: true }, 'validation message');
+    setValidity({}, input, { customError: true }, 'validation message');
     assert.equal(input.validity.customError, true, 'validity state is set');
   }
 );
@@ -72,12 +62,8 @@ test(
     const validationMessages: ValidationMessages = {};
     const validationMessage = 'validation message';
 
-    setValidity(validationMessages)(input)({ customError: true }, validationMessage);
-    assert.equal(
-      validationMessages.customError,
-      validationMessage,
-      'validation message is set'
-    );
+    setValidity(validationMessages, input, { customError: true }, validationMessage);
+    assert.equal(validationMessages.customError, validationMessage, 'validation message is set');
   }
 );
 
@@ -87,7 +73,7 @@ test(
     const input = document.createElement('input');
 
     assert.equal(input.validity.valid, true, 'initial state verified');
-    setValidity({})(input)({ customError: true }, 'validation message');
+    setValidity({}, input, { customError: true }, 'validation message');
     assert.equal(input.validity.valid, false, 'validity state is set to false');
   }
 );
@@ -99,14 +85,10 @@ test(
     const validationMessages: ValidationMessages = {};
     const validationMessage = 'validation message';
 
-    setValidity(validationMessages)(input)({ customError: true }, validationMessage);
-    setValidity(validationMessages)(input)({ customError: false });
+    setValidity(validationMessages, input, { customError: true }, validationMessage);
+    setValidity(validationMessages, input, { customError: false });
 
-    assert.equal(
-      validationMessages.customError,
-      undefined,
-      'validation message is unset'
-    );
+    assert.equal(validationMessages.customError, undefined, 'validation message is unset');
   }
 );
 
@@ -117,13 +99,9 @@ test(
     const validationMessages: ValidationMessages = {};
     const validationMessage = 'validation message';
 
-    setCustomValidity(validationMessages)(input)(validationMessage);
+    setCustomValidity(validationMessages, input, validationMessage);
     assert.equal(input.validity.customError, true, 'customError flag is set');
-    assert.equal(
-      validationMessages.customError,
-      validationMessage,
-      'validation message is set'
-    );
+    assert.equal(validationMessages.customError, validationMessage, 'validation message is set');
   }
 );
 
@@ -133,8 +111,8 @@ test(
     const input = document.createElement('input');
     const validationMessages: ValidationMessages = {};
 
-    setCustomValidity(validationMessages)(input)('validation message');
-    setCustomValidity(validationMessages)(input)('');
+    setCustomValidity(validationMessages, input, 'validation message');
+    setCustomValidity(validationMessages, input, '');
 
     assert.equal(input.validity.customError, false, 'customError flag is unset');
     assert.equal(validationMessages.customError, undefined, 'validation message is unset');
@@ -164,13 +142,9 @@ test(
       get: () => false
     });
 
-    assert.equal(checkValidity(validInput)(), true, 'result is positive for valid inputs');
-    assert.equal(checkValidity(invalidInput)(), false, 'result is negative for invalid inputs');
-    assert.equal(
-      checkValidity(willNotValidateInput)(),
-      true,
-      'result is positive for invalid inputs with property willValidate = false'
-    );
+    assert.equal(checkValidity(validInput), true, 'result is positive for valid inputs');
+    assert.equal(checkValidity(invalidInput), false, 'result is negative for invalid inputs');
+    assert.equal(checkValidity(willNotValidateInput), true, 'result is positive for invalid inputs with property willValidate = false');
   }
 );
 
@@ -186,7 +160,7 @@ test(
 
     input.addEventListener('invalid', eventHandler);
 
-    checkValidity(input)();
+    checkValidity(input);
 
     assert.equal(eventHandler.callCount, 1, 'event "invalid" dispatched');
   }
@@ -200,7 +174,7 @@ test(
 
     input.addEventListener('valid', eventHandler);
 
-    checkValidity(input)();
+    checkValidity(input);
 
     assert.equal(eventHandler.callCount, 1, 'event "valid" dispatched');
   }
@@ -230,21 +204,9 @@ test(
       get: () => false
     });
 
-    assert.equal(
-      reportValidity(reporter)(validInput)(),
-      true,
-      'result is positive for valid inputs'
-    );
-    assert.equal(
-      reportValidity(reporter)(invalidInput)(),
-      false,
-      'result is negative for invalid inputs'
-    );
-    assert.equal(
-      reportValidity(reporter)(willNotValidateInput)(),
-      true,
-      'result is positive for invalid inputs with property willValidate = false'
-    );
+    assert.equal(reportValidity(reporter, validInput), true, 'result is positive for valid inputs');
+    assert.equal(reportValidity(reporter, invalidInput), false, 'result is negative for invalid inputs');
+    assert.equal(reportValidity(reporter, willNotValidateInput), true, 'result is positive for invalid inputs with property willValidate = false');
   }
 );
 
@@ -261,7 +223,7 @@ test(
 
     input.addEventListener('invalid', eventHandler);
 
-    reportValidity(reporter)(input)();
+    reportValidity(reporter, input);
 
     assert.equal(eventHandler.callCount, 1, 'event "invalid" dispatched');
   }
@@ -276,7 +238,7 @@ test(
 
     input.addEventListener('valid', eventHandler);
 
-    reportValidity(reporter)(input)();
+    reportValidity(reporter, input);
 
     assert.equal(eventHandler.callCount, 1, 'event "valid" dispatched');
   }
@@ -293,10 +255,10 @@ test(
       get: () => ({ valid: false })
     });
 
-    reportValidity(reporter)(inputValid)();
+    reportValidity(reporter, inputValid);
     assert.equal(reporter.callCount, 1, 'validityReporter invoked for valid inputs');
 
-    reportValidity(reporter)(inputInvalid)();
+    reportValidity(reporter, inputInvalid);
     assert.equal(reporter.callCount, 2, 'validityReporter invoked for invalid inputs');
   }
 );
@@ -317,7 +279,7 @@ test(
       event.preventDefault();
     });
 
-    reportValidity(reporter)(inputValid)();
+    reportValidity(reporter, inputValid);
     assert.equal(reporter.callCount, 0, 'validityReporter is not invoked for valid inputs');
 
     // invalid
@@ -325,7 +287,7 @@ test(
       event.preventDefault();
     });
 
-    reportValidity(reporter)(inputValid)();
+    reportValidity(reporter, inputValid);
     assert.equal(reporter.callCount, 0, 'validityReporter is not invoked for invalid inputs');
   }
 );
@@ -340,11 +302,7 @@ test(
       get: () => false
     });
 
-    assert.equal(
-      getValidationMessage(validationMessages)(input)(),
-      '',
-      'validation message is an empty string'
-    );
+    assert.equal(getValidationMessage(validationMessages, input), '', 'validation message is an empty string');
   }
 );
 
@@ -358,11 +316,7 @@ test(
       get: () => true
     });
 
-    assert.equal(
-      getValidationMessage(validationMessages)(input)(),
-      '',
-      'validation message is an empty string'
-    );
+    assert.equal(getValidationMessage(validationMessages, input), '', 'validation message is an empty string');
   }
 );
 
@@ -378,9 +332,9 @@ test(
       get: () => true
     });
 
-    setValidity(validationMessages)(input)({ badInput: true } as ValidityStateFlags, firstErrorMessage);
-    setValidity(validationMessages)(input)({ customError: true }, secondErrorMessage);
-    assert.equal(getValidationMessage(validationMessages)(input)(), firstErrorMessage);
+    setValidity(validationMessages, input, { badInput: true } as ValidityStateFlags, firstErrorMessage);
+    setValidity(validationMessages, input, { customError: true }, secondErrorMessage);
+    assert.equal(getValidationMessage(validationMessages, input), firstErrorMessage);
   }
 );
 

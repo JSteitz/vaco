@@ -68,42 +68,35 @@ export type Constraint = {
 
 /**
  * Filter constraints that match at least one item of the provided attributes list
- *
- * @signature getByAttributes :: Constraints c => c -> [string] -> c
  */
-export const getByAttributes =
-  (constraints: Constraints) =>
-    (attributes: string[]): Constraints =>
-      Object.entries(constraints).reduce(
-        (result: Constraints, [name, constraint]: [string, Constraint]): Constraints =>
-          (constraint.attributes.some((a: string) => attributes.includes(a)))
-            ? { ...result, [name]: constraint }
-            : result,
-        {}
-      );
+export function getByAttributes(constraints: Constraints, attributes: string[]): Constraints {
+  return Object.entries(constraints).reduce(
+    (result: Constraints, [name, constraint]: [string, Constraint]): Constraints =>
+      (constraint.attributes.some((a: string) => attributes.includes(a)))
+        ? { ...result, [name]: constraint }
+        : result,
+    {}
+  );
+}
 
 /**
  * Extracts validity states from all constrains as a string list
- *
- * @signature getValidityStates :: Constraints c => c -> [string]
  */
-export const getValidityStates =
-  (constraints: Constraints): string[] =>
-    Object.entries(constraints).reduce(
-      (result: string[], [, constraint]: [string, Constraint]) =>
-        [...result, ...constraint.states],
-      []
-    );
+export function getValidityStates(constraints: Constraints): string[] {
+  return Object.entries(constraints).reduce(
+    (result: string[], [, constraint]: [string, Constraint]) =>
+      [...result, ...constraint.states],
+    []
+  );
+}
 
 /**
  * Extracts unique attributes from all constrains as a string list
- *
- * @signature getAttributes :: Constraints c => c -> Set<string>
  */
-export const getAttributes =
-  (constraints: Constraints): Set<string> =>
-    Object.entries(constraints).reduce(
-      (result: Set<string>, [, constraint]: [string, Constraint]) =>
-        new Set([...result, ...constraint.attributes]),
-      new Set()
-    );
+export function getAttributes(constraints: Constraints): Set<string> {
+  return Object.entries(constraints).reduce(
+    (result: Set<string>, [, constraint]: [string, Constraint]) =>
+      new Set([...result, ...constraint.attributes]),
+    new Set()
+  );
+}

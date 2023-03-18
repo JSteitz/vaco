@@ -13,29 +13,10 @@ test(
     const constraintB = { attributes: ['b', 'c'] } as Constraint;
     const constraints = { a: constraintA, b: constraintB };
 
-    assert.equal(
-      getByAttributes(constraints)(['f']),
-      {},
-      'no constraint matches the attribute list',
-    );
-
-    assert.equal(
-      getByAttributes(constraints)(['a']),
-      { a: constraintA },
-      'at least one constraint matches the attribute list',
-    );
-
-    assert.equal(
-      getByAttributes(constraints)(['a', 'c']),
-      { a: constraintA, b: constraintB },
-      'multiple constraints match at least one attribute',
-    );
-
-    assert.equal(
-      getByAttributes(constraints)(['b']),
-      { a: constraintA, b: constraintB },
-      'multiple constraints match the same attribute',
-    );
+    assert.equal(getByAttributes(constraints, ['f']), {}, 'no constraint matches the attribute list',);
+    assert.equal(getByAttributes(constraints, ['a']), { a: constraintA }, 'at least one constraint matches the attribute list',);
+    assert.equal(getByAttributes(constraints, ['a', 'c']), { a: constraintA, b: constraintB }, 'multiple constraints match at least one attribute',);
+    assert.equal(getByAttributes(constraints, ['b']), { a: constraintA, b: constraintB }, 'multiple constraints match the same attribute',);
   },
 );
 
@@ -45,11 +26,7 @@ test(
     const constraintA = { states: ['a'] } as Constraint;
     const constraintB = { states: ['b'] } as Constraint;
 
-    assert.equal(
-      getValidityStates({ a: constraintA, b: constraintB }),
-      ['a', 'b'],
-      'contains all states defined in each constraint',
-    );
+    assert.equal(getValidityStates({ a: constraintA, b: constraintB }), ['a', 'b'], 'contains all states defined in each constraint',);
   },
 );
 
@@ -59,10 +36,6 @@ test(
     const constraintA = { attributes: ['a', 'b'] } as Constraint;
     const constraintB = { attributes: ['b', 'c'] } as Constraint;
 
-    assert.equal(
-      getAttributes({ a: constraintA, b: constraintB }),
-      new Set(['a', 'b', 'c']),
-      'contains all attributes defined in each constraint',
-    );
+    assert.equal(getAttributes({ a: constraintA, b: constraintB }), new Set(['a', 'b', 'c']), 'contains all attributes defined in each constraint',);
   },
 );

@@ -1,7 +1,8 @@
-import { Constraint, ConstraintInternals, Constraints, I18nCallback } from './constraint';
-import { ListedElement, SubmittableElement } from './utils';
-import { FormApi } from './form';
-import { ControlApi } from './control';
+import type { Constraint, ConstraintInternals, Constraints, I18nCallback } from './constraint';
+import type { ListedElement, SubmittableElement } from './utils';
+import type { FormApi } from './form';
+import type { ControlApi } from './control';
+
 import { getByAttributes } from './constraint';
 
 export type Validator = {
@@ -25,71 +26,70 @@ export type Validator = {
  *
  * If the element has an associated form, then the above events will also be
  * fired on the form with the same conditions.
- *
- * @signature validate :: ControlApi -> ConstraintInternals -> Constraints -> Function
  */
-const validate =
-  ({ resetValidityState }: ControlApi) =>
-    (constraintInternals: ConstraintInternals) =>
-      (constraints: Constraints) =>
-        (): void => {
-          resetValidityState();
+function validate(
+  { resetValidityState }: ControlApi,
+  constraintInternals: ConstraintInternals,
+  constraints: Constraints,
+) {
+  resetValidityState();
 
-          if (!constraintInternals.target.willValidate || Object.keys(constraints).length === 0) {
-            return;
-          }
+  if (!constraintInternals.target.willValidate || Object.keys(constraints).length === 0) {
+    return;
+  }
 
-          const runners = Object.entries(constraints)
-            .filter(([name, constraint]: [string, Constraint]): unknown =>
-              constraintInternals.target.dispatchEvent(
-                new CustomEvent('validate', { cancelable: true, detail: { name, constraint } })
-              )
-            )
-            .map(([, constraint]): Promise<unknown> => (
-              constraint.validate(constraintInternals)
-            ));
+  const runners = Object.entries(constraints)
+    .filter(([name, constraint]: [string, Constraint]): unknown =>
+      constraintInternals.target.dispatchEvent(
+        new CustomEvent('validate', { cancelable: true, detail: { name, constraint } })
+      )
+    )
+    .map(([, constraint]): Promise<unknown> => (
+      constraint.validate(constraintInternals)
+    ));
 
-          Promise.allSettled(runners)
-            .finally(() => constraintInternals.target.dispatchEvent(new CustomEvent('validated')));
-        };
+  Promise.allSettled(runners)
+    .finally(() => constraintInternals.target.dispatchEvent(new CustomEvent('validated')));
+}
 
 /**
  *
  */
-export default
-  (refs: WeakMap<HTMLFormElement | ListedElement, ControlApi | FormApi>) =>
-    (constraints: Constraints) =>
-      (i18n: I18nCallback): Validator => {
-        const cache = new WeakMap<SubmittableElement, CallableFunction>();
+export function createValidator(
+  refs: WeakMap<HTMLFormElement | ListedElement, ControlApi | FormApi>,
+  constraints: Constraints,
+  i18n: I18nCallback,
+): Validator {
+  const cache = new WeakMap<SubmittableElement, CallableFunction>();
 
-        return {
-          updateAndRun: (event: Event | SubmittableElement): void => {
-            const element = (event instanceof Event) ? event.currentTarget as SubmittableElement : event;
-            const attributes = element.getAttributeNames();
-            const controlApi = refs.get(element) as ControlApi | undefined;
+  return {
+    updateAndRun: (event: Event | SubmittableElement): void => {
+      const element = (event instanceof Event) ? event.currentTarget as SubmittableElement : event;
+      const attributes = element.getAttributeNames();
+      const controlApi = refs.get(element) as ControlApi | undefined;
 
-            if (controlApi) {
-              const constraintInternals = {
-                target: element,
-                localize: i18n,
-                setValidity: controlApi.setValidity,
-              };
-
-              cache.set(element, validate(controlApi)(constraintInternals)(getByAttributes(constraints)(attributes)));
-            }
-
-            if (cache.has(element)) {
-              // @ts-ignore see https://github.com/microsoft/TypeScript/issues/21732
-              cache.get(element)();
-            }
-          },
-          run: (event: Event | SubmittableElement): void => {
-            const element = (event instanceof Event) ? event.currentTarget as SubmittableElement : event;
-
-            if (cache.has(element)) {
-              // @ts-ignore see https://github.com/microsoft/TypeScript/issues/21732
-              cache.get(element)();
-            }
-          }
+      if (controlApi) {
+        const constraintInternals = {
+          target: element,
+          localize: i18n,
+          setValidity: controlApi.setValidity,
         };
-      };
+
+        cache.set(element, validate.bind(null, controlApi, constraintInternals, getByAttributes(constraints, attributes)));
+      }
+
+      if (cache.has(element)) {
+        // @ts-ignore see https://github.com/microsoft/TypeScript/issues/21732
+        cache.get(element)();
+      }
+    },
+    run: (event: Event | SubmittableElement): void => {
+      const element = (event instanceof Event) ? event.currentTarget as SubmittableElement : event;
+
+      if (cache.has(element)) {
+        // @ts-ignore see https://github.com/microsoft/TypeScript/issues/21732
+        cache.get(element)();
+      }
+    }
+  };
+}
