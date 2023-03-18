@@ -67,6 +67,7 @@ export function createValidator(
       const element = (event instanceof Event) ? event.currentTarget as SubmittableElement : event;
       const attributes = element.getAttributeNames();
       const controlApi = refs.get(element) as ControlApi | undefined;
+      let validator = cache.get(element);
 
       if (controlApi) {
         const constraintInternals = {
@@ -75,20 +76,21 @@ export function createValidator(
           setValidity: controlApi.setValidity,
         };
 
-        cache.set(element, validate.bind(null, controlApi, constraintInternals, getByAttributes(constraints, attributes)));
+        validator = validate.bind(null, controlApi, constraintInternals, getByAttributes(constraints, attributes));
+
+        cache.set(element, validator);
       }
 
-      if (cache.has(element)) {
-        // @ts-ignore see https://github.com/microsoft/TypeScript/issues/21732
-        cache.get(element)();
+      if (validator !== undefined) {
+        validator();
       }
     },
     run: (event: Event | SubmittableElement): void => {
       const element = (event instanceof Event) ? event.currentTarget as SubmittableElement : event;
+      const validator = cache.get(element);
 
-      if (cache.has(element)) {
-        // @ts-ignore see https://github.com/microsoft/TypeScript/issues/21732
-        cache.get(element)();
+      if (validator !== undefined) {
+        validator();
       }
     }
   };

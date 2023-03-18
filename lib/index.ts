@@ -34,6 +34,21 @@ export type VacoState = {
 export const VACO = Symbol('Vaco');
 export const VERSION = '0.0.1';
 
+export function create(options: VacoOptions): VacoState {
+  const state = {} as VacoState;
+
+  Object.defineProperty(state, 'refs', { value: new WeakMap() });
+  Object.defineProperty(state, 'reporter', { value: options.reporter ?? (() => { /* */ }) });
+  Object.defineProperty(state, 'i18n', { value: options.i18n ?? ((): null => null) });
+  Object.defineProperty(state, 'constraints', { value: options.constraints });
+  Object.defineProperty(state, 'attributes', { value: getAttributes(state.constraints) });
+  Object.defineProperty(state, 'states', { value: getValidityStates(state.constraints) });
+  Object.defineProperty(state, 'validator', { value: createValidator(state.refs, state.constraints, state.i18n) });
+  Object.defineProperty(state, 'observer', { value: createAttributeObserver([...state.attributes, 'value'], state.validator.updateAndRun) });
+
+  return Object.freeze(state);
+}
+
 export function patch(state: VacoState, element: HTMLFormElement | ListedElement): void {
   if (state.refs.has(element)) {
     return;
@@ -67,17 +82,23 @@ export function reset(state: VacoState, element: HTMLFormElement | ListedElement
   }
 }
 
-export function create(options: VacoOptions): VacoState {
-  const state = {} as VacoState;
+/**
+ * Patch all given elements.
+ * If a form element is given, all submittable elements linked to the form will also be patched.
+ * If no elements are provided, all forms in the current document will be patched.
+ * You can reset all elements with calling the return function from the setup().
+ */
+export default function(options: VacoOptions, elements?: (HTMLFormElement | ListedElement)[]): CallableFunction {
+  const state = create(options);
+  const elementsToPatch = elements ?? document.getElementsByTagName('form');
 
-  Object.defineProperty(state, 'refs', { value: new WeakMap() });
-  Object.defineProperty(state, 'reporter', { value: options.reporter ?? (() => { /* */ }) });
-  Object.defineProperty(state, 'i18n', { value: options.i18n ?? ((): null => null) });
-  Object.defineProperty(state, 'constraints', { value: options.constraints });
-  Object.defineProperty(state, 'attributes', { value: getAttributes(state.constraints) });
-  Object.defineProperty(state, 'states', { value: getValidityStates(state.constraints) });
-  Object.defineProperty(state, 'validator', { value: createValidator(state.refs, state.constraints, state.i18n) });
-  Object.defineProperty(state, 'observer', { value: createAttributeObserver([...state.attributes, 'value'], state.validator.updateAndRun) });
+  for (const element of elementsToPatch) {
+    patch(state, element);
+  }
 
-  return Object.freeze(state);
+  return (): void => {
+    for (const element of elementsToPatch) {
+      reset(state, element);
+    }
+  };
 }
