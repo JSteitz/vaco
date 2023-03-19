@@ -1,7 +1,7 @@
 import type { Constraint, ConstraintInternals, Constraints, I18nCallback } from './constraint';
 import type { ListedElement, SubmittableElement } from './utils';
-import type { FormApi } from './form';
 import type { ControlApi } from './control';
+import type { Refs } from './index';
 
 import { getByAttributes } from './constraint';
 
@@ -56,7 +56,7 @@ function validate(
  *
  */
 export function createValidator(
-  refs: WeakMap<HTMLFormElement | ListedElement, ControlApi | FormApi>,
+  refs: Refs<HTMLFormElement | ListedElement>,
   constraints: Constraints,
   i18n: I18nCallback,
 ): Validator {
@@ -66,7 +66,7 @@ export function createValidator(
     updateAndRun: (event: Event | SubmittableElement): void => {
       const element = (event instanceof Event) ? event.currentTarget as SubmittableElement : event;
       const attributes = element.getAttributeNames();
-      const controlApi = refs.get(element) as ControlApi | undefined;
+      const controlApi = refs.get(element);
       let validator = cache.get(element);
 
       if (controlApi) {

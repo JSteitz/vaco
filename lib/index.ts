@@ -13,6 +13,11 @@ import { createValidator } from './validator';
 import { setup as setupControl } from './control';
 import { setup as setupForm } from './form';
 
+export interface Refs<K extends object> extends WeakMap<K, FormApi | ControlApi | unknown> {
+  get<T extends K>(key: T): T extends HTMLFormElement ? FormApi : T extends ListedElement ? ControlApi : unknown | undefined;
+  set<T extends K>(key: T, value: T extends HTMLFormElement ? FormApi : T extends ListedElement ? ControlApi : unknown): this;
+}
+
 // @todo add documentation to all functions and types
 export type VacoOptions = {
   constraints: Constraints;
@@ -28,7 +33,7 @@ export type VacoState = {
   readonly validator: Validator;
   readonly i18n: I18nCallback;
   readonly observer: Observer;
-  readonly refs: WeakMap<HTMLFormElement | ListedElement, FormApi | ControlApi>;
+  readonly refs: Refs<HTMLFormElement | ListedElement>;
 };
 
 export const VACO = Symbol('Vaco');
