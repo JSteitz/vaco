@@ -1,13 +1,13 @@
 import type { Constraint, ConstraintInternals, Constraints, I18nCallback } from './constraint';
-import type { ListedElement, SubmittableElement } from './utils';
+import type { ListedElement } from './utils';
 import type { ControlApi } from './control';
 import type { Refs } from './index';
 
 import { getByAttributes } from './constraint';
 
 export type Validator = {
-  run: (event: Event | SubmittableElement) => void;
-  updateAndRun: (event: Event | SubmittableElement) => void;
+  run: (element: ListedElement) => void;
+  updateAndRun: (element: ListedElement) => void;
 };
 
 /**
@@ -60,11 +60,10 @@ export function createValidator(
   constraints: Constraints,
   i18n: I18nCallback,
 ): Validator {
-  const cache = new WeakMap<SubmittableElement, CallableFunction>();
+  const cache = new WeakMap<ListedElement, CallableFunction>();
 
   return {
-    updateAndRun: (event: Event | SubmittableElement): void => {
-      const element = (event instanceof Event) ? event.currentTarget as SubmittableElement : event;
+    updateAndRun: (element: ListedElement): void => {
       const attributes = element.getAttributeNames();
       const controlApi = refs.get(element);
       let validator = cache.get(element);
@@ -85,8 +84,7 @@ export function createValidator(
         validator();
       }
     },
-    run: (event: Event | SubmittableElement): void => {
-      const element = (event instanceof Event) ? event.currentTarget as SubmittableElement : event;
+    run: (element: ListedElement): void => {
       const validator = cache.get(element);
 
       if (validator !== undefined) {

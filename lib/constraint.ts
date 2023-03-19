@@ -1,5 +1,5 @@
 import type { ValidityStateFlags } from './api';
-import type { SubmittableElement } from './utils';
+import type { ListedElement } from './utils';
 
 export type Constraints = { [key: string]: Constraint; };
 
@@ -9,10 +9,10 @@ export type ConstraintInternals = {
   /**
    * Identifies the internals target for the current running constraint validation
    *
-   * @var {SubmittableElement}
+   * @var {ListedElement}
    * @readonly
    */
-  readonly target: SubmittableElement;
+  readonly target: ListedElement;
 
   /**
    * Request localizing a key with the control name and optional attribute values.

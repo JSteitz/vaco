@@ -14,10 +14,13 @@ export type ControlApi = {
 /**
  * @todo add documentation
  */
-function reset({ validator, observer }: VacoState, control: ListedElement): void {
+function reset(state: VacoState, control: ListedElement, validatorEventListener: EventListenerOrEventListenerObject | undefined): void {
   if (isSubmittableElement(control)) {
-    observer.disconnect(control);
-    control.removeEventListener('input', validator.run);
+    state.observer.disconnect(control);
+
+    if (validatorEventListener !== undefined) {
+      control.removeEventListener('input', validatorEventListener);
+    }
   }
 
   // @ts-ignore: removes overridden properties
@@ -41,12 +44,14 @@ function reset({ validator, observer }: VacoState, control: ListedElement): void
  * Creates the validation api for the given element and binds some of them as public methods to the
  * element itself. Afterwards it return the api.
  */
-export function setup({ reporter, states, validator, observer }: VacoState, control: ListedElement): ControlApi {
+export function setup(state: VacoState, control: ListedElement): ControlApi {
+  const { reporter, states, validator, observer } = state;
   const validationMessages: ValidationMessages = {};
   const validity = createValidityState(states);
   const prototype = Object.getPrototypeOf(control);
   const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
   const getter = Object.getOwnPropertyDescriptor(prototype, 'value')?.get;
+  let validatorEventListener: EventListenerOrEventListenerObject | undefined;
 
   Object.defineProperty(control, 'validationMessage', {
     configurable: true,
@@ -80,6 +85,8 @@ export function setup({ reporter, states, validator, observer }: VacoState, cont
   });
 
   if (isSubmittableElement(control)) {
+    validatorEventListener = validator.run.bind(null, control);
+
     Object.defineProperty(control, 'value', {
       configurable: true,
       enumerable: true,
@@ -93,12 +100,12 @@ export function setup({ reporter, states, validator, observer }: VacoState, cont
     });
 
     observer.connect(control);
-    control.addEventListener('input', validator.run);
+    control.addEventListener('input', validatorEventListener);
   }
 
   return {
     setValidity: setValidity.bind(null, validationMessages, control),
     resetValidityState: resetValidity.bind(null, validationMessages, control, states),
-    reset: reset.bind(null, { validator, observer } as VacoState, control),
+    reset: reset.bind(null, state, control, validatorEventListener),
   };
 }
