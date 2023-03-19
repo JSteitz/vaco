@@ -1,3 +1,5 @@
+import type { ValidationMessages, ValidityStateFlags } from '../../lib/api';
+
 import { test } from 'zora';
 import { spy, noop } from '../utils';
 import {
@@ -7,8 +9,8 @@ import {
   reportValidity,
   getValidationMessage,
   createValidityState,
-  ValidationMessages,
-  ValidityStateFlags,
+  resetValidity,
+  ValidityStateDescriptor,
 } from '../../lib/api';
 
 test(
@@ -120,27 +122,62 @@ test(
 );
 
 test(
+  'resetValidity :: Nothing happens for elements that are barred from constraint validation',
+  (assert) => {
+    const invalidInput = document.createElement('input');
+    const validationMessages: ValidationMessages = {
+      customError: "validation message"
+    };
+
+    Object.defineProperty(invalidInput, 'willValidate', { value: false });
+    Object.defineProperty(invalidInput.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(invalidInput.validity, 'customError', ValidityStateDescriptor(true));
+
+    resetValidity(validationMessages, invalidInput, ['customError']);
+
+    assert.equal(validationMessages.customError, 'validation message', 'validation message is not removed');
+    assert.equal(invalidInput.validity.valid, false, 'valid flag is false');
+    assert.equal(invalidInput.validity.customError, true, 'error flag is true');
+  },
+)
+
+test(
+  'resetValidity :: Resets the validity state for valid elements',
+  (assert) => {
+    const input = document.createElement('input');
+    const validationMessages: ValidationMessages = {
+      customError: "validation message",
+      customError2: "validation message",
+    };
+
+    Object.defineProperty(input.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(input.validity, 'customError', ValidityStateDescriptor(true));
+    Object.defineProperty(input.validity, 'customError2', ValidityStateDescriptor(true));
+
+    resetValidity(validationMessages, input, ['customError']);
+
+    assert.equal(validationMessages.customError, undefined, 'validation message is removed');
+    assert.equal(input.validity.customError, false, 'customError flag is false');
+    assert.equal(input.validity.valid, false, 'valid flag is false (not all flags reset)');
+
+    resetValidity(validationMessages, input, ['customError2']);
+    assert.equal(validationMessages.customError2, undefined, 'validation message is removed');
+    assert.equal(input.validity.customError2, false, 'customError2 flag is false');
+    assert.equal(input.validity.valid, true, 'valid flag is true (all flags reset)');
+  },
+)
+
+test(
   'checkValidity :: Test validity status',
   (assert) => {
     const validInput = document.createElement('input');
     const invalidInput = document.createElement('input');
     const willNotValidateInput = document.createElement('input');
 
-    Object.defineProperty(validInput, 'validity', {
-      get: () => ({ valid: true })
-    });
-
-    Object.defineProperty(invalidInput, 'validity', {
-      get: () => ({ valid: false })
-    });
-
-    Object.defineProperty(willNotValidateInput, 'validity', {
-      get: () => ({ valid: false })
-    });
-
-    Object.defineProperty(willNotValidateInput, 'willValidate', {
-      get: () => false
-    });
+    Object.defineProperty(validInput.validity, 'valid', ValidityStateDescriptor(true));
+    Object.defineProperty(invalidInput.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(willNotValidateInput.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(willNotValidateInput, 'willValidate', { get: () => false });
 
     assert.equal(checkValidity(validInput), true, 'result is positive for valid inputs');
     assert.equal(checkValidity(invalidInput), false, 'result is negative for invalid inputs');
@@ -154,9 +191,7 @@ test(
     const input = document.createElement('input');
     const eventHandler = spy();
 
-    Object.defineProperty(input, 'validity', {
-      get: () => ({ valid: false })
-    });
+    Object.defineProperty(input.validity, 'valid', ValidityStateDescriptor(false));
 
     input.addEventListener('invalid', eventHandler);
 
@@ -188,21 +223,10 @@ test(
     const willNotValidateInput = document.createElement('input');
     const reporter = noop;
 
-    Object.defineProperty(validInput, 'validity', {
-      get: () => ({ valid: true })
-    });
-
-    Object.defineProperty(invalidInput, 'validity', {
-      get: () => ({ valid: false })
-    });
-
-    Object.defineProperty(willNotValidateInput, 'validity', {
-      get: () => ({ valid: false })
-    });
-
-    Object.defineProperty(willNotValidateInput, 'willValidate', {
-      get: () => false
-    });
+    Object.defineProperty(validInput.validity, 'valid', ValidityStateDescriptor(true));
+    Object.defineProperty(invalidInput.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(willNotValidateInput.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(willNotValidateInput, 'willValidate', { get: () => false });
 
     assert.equal(reportValidity(reporter, validInput), true, 'result is positive for valid inputs');
     assert.equal(reportValidity(reporter, invalidInput), false, 'result is negative for invalid inputs');
@@ -217,9 +241,7 @@ test(
     const reporter = noop;
     const eventHandler = spy();
 
-    Object.defineProperty(input, 'validity', {
-      get: () => ({ valid: false })
-    });
+    Object.defineProperty(input.validity, 'valid', ValidityStateDescriptor(false));
 
     input.addEventListener('invalid', eventHandler);
 
@@ -247,18 +269,16 @@ test(
 test(
   'reportValidity :: Invoke the validity reporter regardless of result',
   (assert) => {
-    const inputValid = document.createElement('input');
-    const inputInvalid = document.createElement('input');
+    const validInput = document.createElement('input');
+    const invalidInput = document.createElement('input');
     const reporter = spy();
 
-    Object.defineProperty(inputInvalid, 'validity', {
-      get: () => ({ valid: false })
-    });
+    Object.defineProperty(invalidInput.validity, 'valid', ValidityStateDescriptor(false));
 
-    reportValidity(reporter, inputValid);
+    reportValidity(reporter, validInput);
     assert.equal(reporter.callCount, 1, 'validityReporter invoked for valid inputs');
 
-    reportValidity(reporter, inputInvalid);
+    reportValidity(reporter, invalidInput);
     assert.equal(reporter.callCount, 2, 'validityReporter invoked for invalid inputs');
   }
 );
@@ -266,28 +286,26 @@ test(
 test(
   'reportValidity :: Allow to cancel the events to prevent invoking validityReporter',
   (assert) => {
-    const inputValid = document.createElement('input');
-    const inputInvalid = document.createElement('input');
+    const validInput = document.createElement('input');
+    const invalidInput = document.createElement('input');
     const reporter = spy();
 
-    Object.defineProperty(inputInvalid, 'validity', {
-      get: () => ({ valid: false })
-    });
+    Object.defineProperty(invalidInput.validity, 'valid', ValidityStateDescriptor(false));
 
     // valid
-    inputValid.addEventListener('valid', (event) => {
+    validInput.addEventListener('valid', (event) => {
       event.preventDefault();
     });
 
-    reportValidity(reporter, inputValid);
+    reportValidity(reporter, validInput);
     assert.equal(reporter.callCount, 0, 'validityReporter is not invoked for valid inputs');
 
     // invalid
-    inputInvalid.addEventListener('invalid', (event) => {
+    invalidInput.addEventListener('invalid', (event) => {
       event.preventDefault();
     });
 
-    reportValidity(reporter, inputValid);
+    reportValidity(reporter, validInput);
     assert.equal(reporter.callCount, 0, 'validityReporter is not invoked for invalid inputs');
   }
 );
@@ -298,9 +316,7 @@ test(
     const input = document.createElement('input');
     const validationMessages: ValidationMessages = {};
 
-    Object.defineProperty(input, 'willValidate', {
-      get: () => false
-    });
+    Object.defineProperty(input, 'willValidate', { get: () => false });
 
     assert.equal(getValidationMessage(validationMessages, input), '', 'validation message is an empty string');
   }
@@ -312,9 +328,7 @@ test(
     const input = document.createElement('input');
     const validationMessages: ValidationMessages = {};
 
-    Object.defineProperty(input, 'willValidate', {
-      get: () => true
-    });
+    Object.defineProperty(input, 'willValidate', { get: () => true });
 
     assert.equal(getValidationMessage(validationMessages, input), '', 'validation message is an empty string');
   }
@@ -328,22 +342,13 @@ test(
     const firstErrorMessage = 'error 1';
     const secondErrorMessage = 'error 2';
 
-    Object.defineProperty(input, 'willValidate', {
-      get: () => true
-    });
+    Object.defineProperty(input, 'willValidate', { get: () => true });
 
     setValidity(validationMessages, input, { badInput: true } as ValidityStateFlags, firstErrorMessage);
     setValidity(validationMessages, input, { customError: true }, secondErrorMessage);
     assert.equal(getValidationMessage(validationMessages, input), firstErrorMessage);
   }
 );
-
-// test(
-//   'resetValidity :: ',
-//   (assert) => {
-//     const input = document.createElement('input')
-//   },
-// )
 
 
 // suite('Validation :: Form :: interactivelyValidate', () => {
