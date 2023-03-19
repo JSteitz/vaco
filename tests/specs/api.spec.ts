@@ -10,61 +10,63 @@ import {
   getValidationMessage,
   createValidityState,
   resetValidity,
+  interactivelyValidate,
+  staticallyValidate,
   ValidityStateDescriptor,
 } from '../../lib/api';
 
 test(
   'createValidityState :: Creates a validity state object',
   (assert) => {
-    const result = createValidityState(['badInput']);
+    const validityState = createValidityState(['badInput']);
 
-    assert.ok('badInput' in result, 'given flags exist');
-    assert.equal(result.badInput, false, 'given flags are set to false');
+    assert.ok('badInput' in validityState, 'given flags exist');
+    assert.notOk(validityState.badInput, 'given flags are set to false');
 
-    assert.ok('customError' in result, 'default flag customError exists');
-    assert.equal(result.customError, false, 'default flag customErrors is set to false');
+    assert.ok('customError' in validityState, 'default flag customError exists');
+    assert.notOk(validityState.customError, 'default flag customErrors is set to false');
 
-    assert.ok('valid' in result, 'state flag exists');
-    assert.equal(result.valid, true, 'state flag is set to true');
+    assert.ok('valid' in validityState, 'state flag exists');
+    assert.ok(validityState.valid, 'state flag is set to true');
   }
 );
 
 test(
   'setValidity :: Throw an error if no message with a positive flag is given',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
 
-    assert.throws(setValidity.bind(null, {}, input, { customError: true }, undefined), 'throws for missing message');
-    assert.throws(setValidity.bind(null, {}, input, { customError: true }, ''), 'throws for empty message');
+    assert.throws(setValidity.bind(null, {}, control, { customError: true }, undefined), 'throws for missing message');
+    assert.throws(setValidity.bind(null, {}, control, { customError: true }, ''), 'throws for empty message');
   }
 );
 
 test(
   'setValidity :: Set validity flags',
   (assert) => {
-    const input = document.createElement('input');
-    const invalidInput = document.createElement('input');
+    const validControl = document.createElement('input');
+    const invalidControl = document.createElement('input');
 
-    Object.defineProperty(invalidInput, 'willValidate', { value: false });
+    Object.defineProperty(invalidControl, 'willValidate', { value: false });
 
-    assert.equal(invalidInput.validity.customError, false, 'initial state verified');
-    setValidity({}, invalidInput, { customError: true }, 'validation message');
-    assert.equal(invalidInput.validity.customError, false, 'does not change validity for invalid inputs');
+    assert.notOk(invalidControl.validity.customError, 'initial state verified');
+    setValidity({}, invalidControl, { customError: true }, 'validation message');
+    assert.notOk(invalidControl.validity.customError, 'does not change validity for invalid controls');
 
-    assert.equal(input.validity.customError, false, 'initial state verified');
-    setValidity({}, input, { customError: true }, 'validation message');
-    assert.equal(input.validity.customError, true, 'validity state is set');
+    assert.notOk(validControl.validity.customError, 'initial state verified');
+    setValidity({}, validControl, { customError: true }, 'validation message');
+    assert.ok(validControl.validity.customError, 'validity state is set');
   }
 );
 
 test(
   'setValidity :: Set validation message',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
     const validationMessages: ValidationMessages = {};
     const validationMessage = 'validation message';
 
-    setValidity(validationMessages, input, { customError: true }, validationMessage);
+    setValidity(validationMessages, control, { customError: true }, validationMessage);
     assert.equal(validationMessages.customError, validationMessage, 'validation message is set');
   }
 );
@@ -72,23 +74,23 @@ test(
 test(
   'setValidity :: Set validity state to false if a positive validity flag is set',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
 
-    assert.equal(input.validity.valid, true, 'initial state verified');
-    setValidity({}, input, { customError: true }, 'validation message');
-    assert.equal(input.validity.valid, false, 'validity state is set to false');
+    assert.ok(control.validity.valid, 'initial state verified');
+    setValidity({}, control, { customError: true }, 'validation message');
+    assert.notOk(control.validity.valid, 'validity state is set to false');
   }
 );
 
 test(
   'setValidity :: Clear validation message for negative validity flags',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
     const validationMessages: ValidationMessages = {};
     const validationMessage = 'validation message';
 
-    setValidity(validationMessages, input, { customError: true }, validationMessage);
-    setValidity(validationMessages, input, { customError: false });
+    setValidity(validationMessages, control, { customError: true }, validationMessage);
+    setValidity(validationMessages, control, { customError: false });
 
     assert.equal(validationMessages.customError, undefined, 'validation message is unset');
   }
@@ -97,12 +99,12 @@ test(
 test(
   'setCustomValidity :: Set customError validity with message',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
     const validationMessages: ValidationMessages = {};
     const validationMessage = 'validation message';
 
-    setCustomValidity(validationMessages, input, validationMessage);
-    assert.equal(input.validity.customError, true, 'customError flag is set');
+    setCustomValidity(validationMessages, control, validationMessage);
+    assert.ok(control.validity.customError, 'customError flag is set');
     assert.equal(validationMessages.customError, validationMessage, 'validation message is set');
   }
 );
@@ -110,473 +112,487 @@ test(
 test(
   'setCustomValidity :: Clear customError validity if the message is an empty string',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
     const validationMessages: ValidationMessages = {};
 
-    setCustomValidity(validationMessages, input, 'validation message');
-    setCustomValidity(validationMessages, input, '');
+    setCustomValidity(validationMessages, control, 'validation message');
+    setCustomValidity(validationMessages, control, '');
 
-    assert.equal(input.validity.customError, false, 'customError flag is unset');
+    assert.notOk(control.validity.customError, 'customError flag is unset');
     assert.equal(validationMessages.customError, undefined, 'validation message is unset');
   }
 );
 
 test(
-  'resetValidity :: Nothing happens for elements that are barred from constraint validation',
+  'resetValidity :: Skips controls barred from validation',
   (assert) => {
-    const invalidInput = document.createElement('input');
+    const invalidControl = document.createElement('input');
     const validationMessages: ValidationMessages = {
       customError: "validation message"
     };
 
-    Object.defineProperty(invalidInput, 'willValidate', { value: false });
-    Object.defineProperty(invalidInput.validity, 'valid', ValidityStateDescriptor(false));
-    Object.defineProperty(invalidInput.validity, 'customError', ValidityStateDescriptor(true));
+    Object.defineProperty(invalidControl, 'willValidate', { value: false });
+    Object.defineProperty(invalidControl.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(invalidControl.validity, 'customError', ValidityStateDescriptor(true));
 
-    resetValidity(validationMessages, invalidInput, ['customError']);
+    resetValidity(validationMessages, invalidControl, ['customError']);
 
     assert.equal(validationMessages.customError, 'validation message', 'validation message is not removed');
-    assert.equal(invalidInput.validity.valid, false, 'valid flag is false');
-    assert.equal(invalidInput.validity.customError, true, 'error flag is true');
+    assert.notOk(invalidControl.validity.valid, 'valid flag is false');
+    assert.ok(invalidControl.validity.customError, 'error flag is true');
   },
 )
 
 test(
-  'resetValidity :: Resets the validity state for valid elements',
+  'resetValidity :: Resets the validity state',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
     const validationMessages: ValidationMessages = {
       customError: "validation message",
       customError2: "validation message",
     };
 
-    Object.defineProperty(input.validity, 'valid', ValidityStateDescriptor(false));
-    Object.defineProperty(input.validity, 'customError', ValidityStateDescriptor(true));
-    Object.defineProperty(input.validity, 'customError2', ValidityStateDescriptor(true));
+    Object.defineProperty(control.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(control.validity, 'customError', ValidityStateDescriptor(true));
+    Object.defineProperty(control.validity, 'customError2', ValidityStateDescriptor(true));
 
-    resetValidity(validationMessages, input, ['customError']);
+    resetValidity(validationMessages, control, ['customError']);
 
     assert.equal(validationMessages.customError, undefined, 'validation message is removed');
-    assert.equal(input.validity.customError, false, 'customError flag is false');
-    assert.equal(input.validity.valid, false, 'valid flag is false (not all flags reset)');
+    assert.notOk(control.validity.customError, 'customError flag is false');
+    assert.notOk(control.validity.valid, 'valid flag is false (not all flags reset)');
 
-    resetValidity(validationMessages, input, ['customError2']);
+    resetValidity(validationMessages, control, ['customError2']);
     assert.equal(validationMessages.customError2, undefined, 'validation message is removed');
-    assert.equal(input.validity.customError2, false, 'customError2 flag is false');
-    assert.equal(input.validity.valid, true, 'valid flag is true (all flags reset)');
+    assert.notOk(control.validity.customError2, 'customError2 flag is false');
+    assert.ok(control.validity.valid, 'valid flag is true (all flags reset)');
   },
 )
 
 test(
-  'checkValidity :: Test validity status',
+  'checkValidity :: Test validity state',
   (assert) => {
-    const validInput = document.createElement('input');
-    const invalidInput = document.createElement('input');
+    const validControl = document.createElement('input');
+    const invalidControl = document.createElement('input');
     const willNotValidateInput = document.createElement('input');
 
-    Object.defineProperty(validInput.validity, 'valid', ValidityStateDescriptor(true));
-    Object.defineProperty(invalidInput.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(validControl.validity, 'valid', ValidityStateDescriptor(true));
+    Object.defineProperty(invalidControl.validity, 'valid', ValidityStateDescriptor(false));
     Object.defineProperty(willNotValidateInput.validity, 'valid', ValidityStateDescriptor(false));
     Object.defineProperty(willNotValidateInput, 'willValidate', { get: () => false });
 
-    assert.equal(checkValidity(validInput), true, 'result is positive for valid inputs');
-    assert.equal(checkValidity(invalidInput), false, 'result is negative for invalid inputs');
-    assert.equal(checkValidity(willNotValidateInput), true, 'result is positive for invalid inputs with property willValidate = false');
+    assert.ok(checkValidity(validControl), 'result is positive for valid controls');
+    assert.notOk(checkValidity(invalidControl), 'result is negative for invalid controls');
+    assert.ok(checkValidity(willNotValidateInput), 'result is positive for controls barred from validation');
   }
 );
 
 test(
-  'checkValidity :: Dispatch event "invalid" if the result is negative',
+  'checkValidity :: Emit event "invalid" when the result is negative',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
     const eventHandler = spy();
 
-    Object.defineProperty(input.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(control.validity, 'valid', ValidityStateDescriptor(false));
 
-    input.addEventListener('invalid', eventHandler);
+    control.addEventListener('invalid', eventHandler);
 
-    checkValidity(input);
-
-    assert.equal(eventHandler.callCount, 1, 'event "invalid" dispatched');
+    assert.notOk(checkValidity(control), 'result is negative')
+    assert.equal(eventHandler.callCount, 1, 'event "invalid" emitted');
   }
 );
 
 test(
-  'checkValidity :: Dispatch event "valid" if the result is positive',
+  'checkValidity :: Emit event "valid" when the result is positive',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
     const eventHandler = spy();
 
-    input.addEventListener('valid', eventHandler);
+    control.addEventListener('valid', eventHandler);
 
-    checkValidity(input);
-
-    assert.equal(eventHandler.callCount, 1, 'event "valid" dispatched');
+    assert.ok(checkValidity(control), 'result is positive')
+    assert.equal(eventHandler.callCount, 1, 'event "valid" emitted');
   }
 );
 
 test(
-  'reportValidity :: Test validity status',
+  'reportValidity :: Test validity state',
   (assert) => {
-    const validInput = document.createElement('input');
-    const invalidInput = document.createElement('input');
+    const validControl = document.createElement('input');
+    const invalidControl = document.createElement('input');
     const willNotValidateInput = document.createElement('input');
     const reporter = noop;
 
-    Object.defineProperty(validInput.validity, 'valid', ValidityStateDescriptor(true));
-    Object.defineProperty(invalidInput.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(validControl.validity, 'valid', ValidityStateDescriptor(true));
+    Object.defineProperty(invalidControl.validity, 'valid', ValidityStateDescriptor(false));
     Object.defineProperty(willNotValidateInput.validity, 'valid', ValidityStateDescriptor(false));
     Object.defineProperty(willNotValidateInput, 'willValidate', { get: () => false });
 
-    assert.equal(reportValidity(reporter, validInput), true, 'result is positive for valid inputs');
-    assert.equal(reportValidity(reporter, invalidInput), false, 'result is negative for invalid inputs');
-    assert.equal(reportValidity(reporter, willNotValidateInput), true, 'result is positive for invalid inputs with property willValidate = false');
+    assert.ok(reportValidity(reporter, validControl), 'result is positive for valid controls');
+    assert.notOk(reportValidity(reporter, invalidControl), 'result is negative for invalid controls');
+    assert.ok(reportValidity(reporter, willNotValidateInput), 'result is positive for controls barred from validation');
   }
 );
 
 test(
-  'reportValidity :: Dispatch event "invalid" if the result is negative',
+  'reportValidity :: Emit event "invalid" when the result is negative',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
     const reporter = noop;
     const eventHandler = spy();
 
-    Object.defineProperty(input.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(control.validity, 'valid', ValidityStateDescriptor(false));
 
-    input.addEventListener('invalid', eventHandler);
+    control.addEventListener('invalid', eventHandler);
 
-    reportValidity(reporter, input);
-
-    assert.equal(eventHandler.callCount, 1, 'event "invalid" dispatched');
+    assert.notOk(reportValidity(reporter, control), 'result is negative');
+    assert.equal(eventHandler.callCount, 1, 'event "invalid" emitted');
   }
 );
 
 test(
-  'reportValidity :: Dispatch event "valid" if the result is positive',
+  'reportValidity :: Emit event "valid" if the result is positive',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
     const reporter = noop;
     const eventHandler = spy();
 
-    input.addEventListener('valid', eventHandler);
+    control.addEventListener('valid', eventHandler);
 
-    reportValidity(reporter, input);
-
-    assert.equal(eventHandler.callCount, 1, 'event "valid" dispatched');
+    assert.ok(reportValidity(reporter, control), 'result is positive');
+    assert.equal(eventHandler.callCount, 1, 'event "valid" emitted');
   }
 );
 
 test(
   'reportValidity :: Invoke the validity reporter regardless of result',
   (assert) => {
-    const validInput = document.createElement('input');
-    const invalidInput = document.createElement('input');
+    const validControl = document.createElement('input');
+    const invalidControl = document.createElement('input');
     const reporter = spy();
 
-    Object.defineProperty(invalidInput.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(invalidControl.validity, 'valid', ValidityStateDescriptor(false));
 
-    reportValidity(reporter, validInput);
-    assert.equal(reporter.callCount, 1, 'validityReporter invoked for valid inputs');
+    assert.ok(reportValidity(reporter, validControl), 'result is positive');
+    assert.equal(reporter.callCount, 1, 'validityReporter invoked for valid controls');
 
-    reportValidity(reporter, invalidInput);
-    assert.equal(reporter.callCount, 2, 'validityReporter invoked for invalid inputs');
+    assert.notOk(reportValidity(reporter, invalidControl), 'result is negative');
+    assert.equal(reporter.callCount, 2, 'validityReporter invoked for invalid controls');
   }
 );
 
 test(
   'reportValidity :: Allow to cancel the events to prevent invoking validityReporter',
   (assert) => {
-    const validInput = document.createElement('input');
-    const invalidInput = document.createElement('input');
+    const validControl = document.createElement('input');
+    const invalidControl = document.createElement('input');
     const reporter = spy();
 
-    Object.defineProperty(invalidInput.validity, 'valid', ValidityStateDescriptor(false));
+    Object.defineProperty(invalidControl.validity, 'valid', ValidityStateDescriptor(false));
 
     // valid
-    validInput.addEventListener('valid', (event) => {
+    validControl.addEventListener('valid', (event) => {
       event.preventDefault();
     });
 
-    reportValidity(reporter, validInput);
-    assert.equal(reporter.callCount, 0, 'validityReporter is not invoked for valid inputs');
+    assert.ok(reportValidity(reporter, validControl), 'result is positive');
+    assert.equal(reporter.callCount, 0, 'validityReporter is not invoked for valid controls');
 
     // invalid
-    invalidInput.addEventListener('invalid', (event) => {
+    invalidControl.addEventListener('invalid', (event) => {
       event.preventDefault();
     });
 
-    reportValidity(reporter, validInput);
-    assert.equal(reporter.callCount, 0, 'validityReporter is not invoked for invalid inputs');
+    assert.notOk(reportValidity(reporter, invalidControl), 'result is negative');
+    assert.equal(reporter.callCount, 0, 'validityReporter is not invoked for invalid controls');
   }
 );
 
 test(
-  'getValidationMessage :: Return an empty string if element will not validate',
+  'getValidationMessage :: Return an empty string when control will not validate',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
     const validationMessages: ValidationMessages = {};
 
-    Object.defineProperty(input, 'willValidate', { get: () => false });
+    Object.defineProperty(control, 'willValidate', { get: () => false });
 
-    assert.equal(getValidationMessage(validationMessages, input), '', 'validation message is an empty string');
+    assert.equal(getValidationMessage(validationMessages, control), '', 'validation message is an empty string');
   }
 );
 
 test(
-  'getValidationMessage :: Return an empty string if no message was found for element',
+  'getValidationMessage :: Return an empty string when no message was found for control',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
     const validationMessages: ValidationMessages = {};
 
-    Object.defineProperty(input, 'willValidate', { get: () => true });
+    Object.defineProperty(control, 'willValidate', { get: () => true });
 
-    assert.equal(getValidationMessage(validationMessages, input), '', 'validation message is an empty string');
+    assert.equal(getValidationMessage(validationMessages, control), '', 'validation message is an empty string');
   }
 );
 
 test(
   'getValidationMessage :: Return first message in the validation message bag',
   (assert) => {
-    const input = document.createElement('input');
+    const control = document.createElement('input');
     const validationMessages: ValidationMessages = {};
     const firstErrorMessage = 'error 1';
     const secondErrorMessage = 'error 2';
 
-    Object.defineProperty(input, 'willValidate', { get: () => true });
+    Object.defineProperty(control, 'willValidate', { get: () => true });
 
-    setValidity(validationMessages, input, { badInput: true } as ValidityStateFlags, firstErrorMessage);
-    setValidity(validationMessages, input, { customError: true }, secondErrorMessage);
-    assert.equal(getValidationMessage(validationMessages, input), firstErrorMessage);
+    setValidity(validationMessages, control, { badInput: true } as ValidityStateFlags, firstErrorMessage);
+    setValidity(validationMessages, control, { customError: true }, secondErrorMessage);
+    assert.equal(getValidationMessage(validationMessages, control), firstErrorMessage, 'correct message returned');
   }
 );
 
+test(
+  'interativelyValidate :: Skip controls barred from validation',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const validControl = window.document.createElement('input')
+    const invalidControl = window.document.createElement('input')
+    const reporter = noop;
 
-// suite('Validation :: Form :: interactivelyValidate', () => {
-//   setup(browser.setup)
-//   teardown(browser.teardown)
-//
-//   test('When a control is barred from validation, then skip it', () => {
-//     const validityReporter = (): void => { /* */ }
-//     const form = window.document.createElement('form')
-//     const controlValid = window.document.createElement('input')
-//     const controlInvalid = window.document.createElement('input')
-//
-//     form.appendChild(controlValid)
-//     form.appendChild(controlInvalid)
-//     // the disabled state is one of many options to be barred from validation
-//     controlValid.disabled = true
-//     controlInvalid.disabled = true
-//     Object.defineProperty(controlInvalid, 'validity', { get() { return { valid: false } } })
-//
-//     const result = interactivelyValidate(validityReporter, form)
-//
-//     assert.isTrue(result)
-//   })
-//
-//   test('When all controls are valid, then expect result to be true', () => {
-//     const validityReporter = (): void => { /* */ }
-//     const form = window.document.createElement('form')
-//     const control = window.document.createElement('input')
-//
-//     form.appendChild(control)
-//
-//     const result = interactivelyValidate(validityReporter, form)
-//
-//     assert.isTrue(result)
-//   })
-//
-//   test('When a control is invalid, then expect the result to be a list of unhandled controls', () => {
-//     const validityReporter = (): void => { /* */ }
-//     const form = window.document.createElement('form')
-//     const control = window.document.createElement('input')
-//
-//     form.appendChild(control)
-//     Object.defineProperty(control, 'validity', { get() { return { valid: false } } })
-//
-//     const result = interactivelyValidate(validityReporter, form)
-//
-//     assert.deepEqual(result, [control])
-//   })
-//
-//   test('When a control is valid, then emit the event "valid" on the control', () => {
-//     const validityReporter = (): void => { /* */ }
-//     const form = window.document.createElement('form')
-//     const control = window.document.createElement('input')
-//     const eventSpy = sinon.spy()
-//
-//     form.appendChild(control)
-//     control.addEventListener('valid', eventSpy)
-//
-//     interactivelyValidate(validityReporter, form)
-//
-//     assert.isTrue(eventSpy.calledOnce)
-//   })
-//
-//   test('When all controls are valid, then emit the event "valid" on the form', () => {
-//     const validityReporter = (): void => { /* */ }
-//     const form = window.document.createElement('form')
-//     const control = window.document.createElement('input')
-//     const eventSpy = sinon.spy()
-//
-//     form.appendChild(control)
-//     form.addEventListener('valid', eventSpy)
-//
-//     interactivelyValidate(validityReporter, form)
-//
-//     assert.isTrue(eventSpy.calledOnce)
-//   })
-//
-//   test('When a control is invalid, then emit the event "invalid" on the control', () => {
-//     const validityReporter = (): void => { /* */ }
-//     const form = window.document.createElement('form')
-//     const control = window.document.createElement('input')
-//     const eventSpy = sinon.spy()
-//
-//     form.appendChild(control)
-//     control.addEventListener('invalid', eventSpy)
-//     Object.defineProperty(control, 'validity', { get() { return { valid: false } } })
-//
-//     interactivelyValidate(validityReporter, form)
-//
-//     assert.isTrue(eventSpy.calledOnce)
-//   })
-//
-//   test('When a control is invalid, then emit the event "invalid" on the form', () => {
-//     const validityReporter = (): void => { /* */ }
-//     const form = window.document.createElement('form')
-//     const control = window.document.createElement('input')
-//     const eventSpy = sinon.spy()
-//
-//     form.appendChild(control)
-//     form.addEventListener('invalid', eventSpy)
-//     Object.defineProperty(control, 'validity', { get() { return { valid: false } } })
-//
-//     interactivelyValidate(validityReporter, form)
-//
-//     assert.isTrue(eventSpy.calledOnce)
-//   })
-//
-//   test('When the events "valid" and "invalid" are not cancelled, then call the validity reporter', () => {
-//     const validityReporter = sinon.spy()
-//     const form = window.document.createElement('form')
-//     const controlValid = window.document.createElement('input')
-//     const controlInvalid = window.document.createElement('input')
-//
-//     form.appendChild(controlValid)
-//     form.appendChild(controlInvalid)
-//
-//     // without cancelling
-//     interactivelyValidate(validityReporter, form)
-//
-//     assert.isTrue(validityReporter.calledTwice)
-//
-//     // with cancelling
-//     controlValid.addEventListener('valid', (event: Event): void => event.preventDefault())
-//     controlInvalid.addEventListener('invalid', (event: Event): void => event.preventDefault())
-//     Object.defineProperty(controlInvalid, 'validity', { get(): object { return { valid: false } } })
-//
-//     interactivelyValidate(validityReporter, form)
-//
-//     // no change in calls
-//     assert.isTrue(validityReporter.calledTwice)
-//   })
-// })
+    form.appendChild(validControl)
+    form.appendChild(invalidControl)
 
-// suite('Validation :: Form :: staticallyValidate', () => {
-//   setup(browser.setup)
-//   teardown(browser.teardown)
-//
-//   test('When a control is barred from validation, then skip it', () => {
-//     const form = window.document.createElement('form')
-//     const controlValid = window.document.createElement('input')
-//     const controlInvalid = window.document.createElement('input')
-//
-//     form.appendChild(controlValid)
-//     form.appendChild(controlInvalid)
-//     // the disabled state is one of many options to be barred from validation
-//     controlValid.disabled = true
-//     controlInvalid.disabled = true
-//     Object.defineProperty(controlInvalid, 'validity', { get() { return { valid: false } } })
-//
-//     const result = staticallyValidate(form)
-//
-//     assert.isTrue(result)
-//   })
-//
-//   test('When all controls are valid, then expect result to be true', () => {
-//     const form = window.document.createElement('form')
-//     const control = window.document.createElement('input')
-//
-//     form.appendChild(control)
-//
-//     const result = staticallyValidate(form)
-//
-//     assert.isTrue(result)
-//   })
-//
-//   test('When a control is invalid, then expect the result to be a list of unhandled controls', () => {
-//     const form = window.document.createElement('form')
-//     const control = window.document.createElement('input')
-//
-//     form.appendChild(control)
-//     Object.defineProperty(control, 'validity', { get() { return { valid: false } } })
-//
-//     const result = staticallyValidate(form)
-//
-//     assert.deepEqual(result, [control])
-//   })
-//
-//   test('When a control is valid, then emit the event "valid" on the control', () => {
-//     const form = window.document.createElement('form')
-//     const control = window.document.createElement('input')
-//     const eventSpy = sinon.spy()
-//
-//     form.appendChild(control)
-//     control.addEventListener('valid', eventSpy)
-//
-//     staticallyValidate(form)
-//
-//     assert.isTrue(eventSpy.calledOnce)
-//   })
-//
-//   test('When all controls are valid, then emit the event "valid" on the form', () => {
-//     const form = window.document.createElement('form')
-//     const control = window.document.createElement('input')
-//     const eventSpy = sinon.spy()
-//
-//     form.appendChild(control)
-//     form.addEventListener('valid', eventSpy)
-//
-//     staticallyValidate(form)
-//
-//     assert.isTrue(eventSpy.calledOnce)
-//   })
-//
-//   test('When a control is invalid, then emit the event "invalid" on the control', () => {
-//     const form = window.document.createElement('form')
-//     const control = window.document.createElement('input')
-//     const eventSpy = sinon.spy()
-//
-//     form.appendChild(control)
-//     control.addEventListener('invalid', eventSpy)
-//     Object.defineProperty(control, 'validity', { get() { return { valid: false } } })
-//
-//     staticallyValidate(form)
-//
-//     assert.isTrue(eventSpy.calledOnce)
-//   })
-//
-//   test('When a control is invalid, then emit the event "invalid" on the form', () => {
-//     const form = window.document.createElement('form')
-//     const control = window.document.createElement('input')
-//     const eventSpy = sinon.spy()
-//
-//     form.appendChild(control)
-//     form.addEventListener('invalid', eventSpy)
-//     Object.defineProperty(control, 'validity', { get() { return { valid: false } } })
-//
-//     staticallyValidate(form)
-//
-//     assert.isTrue(eventSpy.calledOnce)
-//   })
-// })
+    // the disabled state is one of many options to be barred from validation
+    validControl.disabled = true
+    invalidControl.disabled = true
+    Object.defineProperty(invalidControl.validity, 'valid', ValidityStateDescriptor(false))
+
+    assert.notOk(validControl.willValidate, 'valid controls are barred from validation')
+    assert.notOk(invalidControl.willValidate, 'invalid controls are barred from validation')
+    assert.ok(interactivelyValidate(reporter, form), 'result is positive')
+  }
+);
+
+test(
+  'interativelyValidate :: Return positive result when all controls are valid',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const control = window.document.createElement('input')
+    const reporter = noop;
+
+    form.appendChild(control)
+
+    assert.ok(interactivelyValidate(reporter, form), 'result is positive')
+  }
+);
+
+test(
+  'interativelyValidate :: Return list of unhandled controls when a control is invalid',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const control = window.document.createElement('input')
+    const reporter = noop
+
+    form.appendChild(control)
+    Object.defineProperty(control.validity, 'valid', ValidityStateDescriptor(false))
+
+    assert.deepEqual(interactivelyValidate(reporter, form), [control], 'result is negative with unhandled controls')
+  }
+);
+
+test(
+  'interativelyValidate :: Emit event "valid" for valid controls',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const control = window.document.createElement('input')
+    const reporter = noop;
+    const eventHandler = spy();
+
+    form.appendChild(control)
+    control.addEventListener('valid', eventHandler)
+
+    assert.ok(interactivelyValidate(reporter, form), 'result is positive')
+    assert.equal(eventHandler.callCount, 1, 'event "valid" emitted')
+  }
+);
+
+test(
+  'interativelyValidate :: Emit event "valid" for a form when all controls are valid',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const control = window.document.createElement('input')
+    const reporter = noop;
+    const eventHandler = spy();
+
+    form.appendChild(control)
+    form.addEventListener('valid', eventHandler)
+
+    assert.ok(interactivelyValidate(reporter, form), 'result is positive')
+    assert.equal(eventHandler.callCount, 1, 'event "valid" emitted')
+  }
+);
+
+test(
+  'interativelyValidate :: Emit event "invalid" for invalid controls',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const control = window.document.createElement('input')
+    const reporter = noop;
+    const eventHandler = spy();
+
+    form.appendChild(control)
+    control.addEventListener('invalid', eventHandler)
+    Object.defineProperty(control.validity, 'valid', ValidityStateDescriptor(false))
+
+    assert.deepEqual(interactivelyValidate(reporter, form), [control], 'result is negative with unhandled controls')
+    assert.equal(eventHandler.callCount, 1, 'event "invalid" emitted')
+  }
+);
+
+test(
+  'interativelyValidate :: Emit event "invalid" for a form when a control is invalid',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const control = window.document.createElement('input')
+    const reporter = noop;
+    const eventHandler = spy();
+
+    form.appendChild(control)
+    form.addEventListener('invalid', eventHandler)
+    Object.defineProperty(control.validity, 'valid', ValidityStateDescriptor(false))
+
+    assert.deepEqual(interactivelyValidate(reporter, form), [control], 'result is negative with unhandled controls')
+    assert.equal(eventHandler.callCount, 1, 'event "invalid" emitted')
+  }
+);
+
+test(
+  'interativelyValidate :: Invoke validity reporter when the emitted events "valid" and "invalid" are not cancelled',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const validControl = window.document.createElement('input')
+    const invalidControl = window.document.createElement('input')
+    const reporter = spy();
+
+    form.appendChild(validControl)
+    form.appendChild(invalidControl)
+    Object.defineProperty(invalidControl.validity, 'valid', ValidityStateDescriptor(false))
+
+    // without cancelling
+    assert.deepEqual(interactivelyValidate(reporter, form), [invalidControl], 'result is negative with unhandled controls')
+    assert.equal(reporter.callCount, 2, 'validity reporter invoked for all controls')
+
+    // with cancelling
+    validControl.addEventListener('valid', (event: Event): void => event.preventDefault())
+    invalidControl.addEventListener('invalid', (event: Event): void => event.preventDefault())
+
+    // no change in calls
+    assert.deepEqual(interactivelyValidate(reporter, form), [], 'result is negative')
+    assert.equal(reporter.callCount, 2, 'validity reporter not invoked for cancelled control events')
+  }
+);
+
+test(
+  'staticallyValidate :: Skip controls barred from validation',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const validControl = window.document.createElement('input')
+    const invalidControl = window.document.createElement('input')
+
+    form.appendChild(validControl)
+    form.appendChild(invalidControl)
+
+    // the disabled state is one of many options to be barred from validation
+    validControl.disabled = true
+    invalidControl.disabled = true
+    Object.defineProperty(invalidControl.validity, 'valid', ValidityStateDescriptor(false))
+
+    assert.notOk(validControl.willValidate, 'valid controls are barred from validation')
+    assert.notOk(invalidControl.willValidate, 'invalid controls are barred from validation')
+    assert.ok(staticallyValidate(form), 'result is positive')
+  }
+);
+
+test(
+  'staticallyValidate :: Return positive result when all controls are valid',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const control = window.document.createElement('input')
+
+    form.appendChild(control)
+
+    assert.ok(staticallyValidate(form), 'form is valid')
+  }
+);
+
+test(
+  'staticallyValidate :: Return list of unhandled controls when a control is invalid',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const control = window.document.createElement('input')
+
+    form.appendChild(control)
+    Object.defineProperty(control.validity, 'valid', ValidityStateDescriptor(false))
+
+    assert.deepEqual(staticallyValidate(form), [control], 'result is negative with unhandled controls')
+  }
+);
+
+test(
+  'staticallyValidate :: Emit event "valid" for valid controls',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const control = window.document.createElement('input')
+    const eventHandler = spy();
+
+    form.appendChild(control)
+    control.addEventListener('valid', eventHandler)
+
+    assert.ok(staticallyValidate(form), 'result is positive')
+    assert.equal(eventHandler.callCount, 1, 'event "valid" emitted')
+  }
+);
+
+test(
+  'staticallyValidate :: Emit event "valid" for a form when all controls are valid',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const control = window.document.createElement('input')
+    const eventHandler = spy();
+
+    form.appendChild(control)
+    form.addEventListener('valid', eventHandler)
+
+    assert.ok(staticallyValidate(form), 'result is positive')
+    assert.equal(eventHandler.callCount, 1, 'event "valid" emitted')
+  }
+);
+
+test(
+  'staticallyValidate :: Emit event "invalid" for invalid controls',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const control = window.document.createElement('input')
+    const eventHandler = spy();
+
+    form.appendChild(control)
+    control.addEventListener('invalid', eventHandler)
+    Object.defineProperty(control.validity, 'valid', ValidityStateDescriptor(false))
+
+    assert.deepEqual(staticallyValidate(form), [control], 'result is negative with unhandled controls')
+    assert.equal(eventHandler.callCount, 1, 'event "invalid" emitted')
+  }
+);
+
+test(
+  'staticallyValidate :: Emit event "invalid" for a form when a control is invalid',
+  (assert) => {
+    const form = window.document.createElement('form')
+    const control = window.document.createElement('input')
+    const eventHandler = spy();
+
+    form.appendChild(control)
+    form.addEventListener('invalid', eventHandler)
+    Object.defineProperty(control.validity, 'valid', ValidityStateDescriptor(false))
+
+    assert.deepEqual(staticallyValidate(form), [control], 'result is negative with unhandled controls')
+    assert.equal(eventHandler.callCount, 1, 'event "invalid" emitted')
+  }
+);
