@@ -49,7 +49,7 @@ export function create(options: VacoOptions): VacoState {
   Object.defineProperty(state, 'attributes', { value: getAttributes(state.constraints) });
   Object.defineProperty(state, 'states', { value: getValidityStates(state.constraints) });
   Object.defineProperty(state, 'validator', { value: createValidator(state.refs, state.constraints, state.i18n) });
-  Object.defineProperty(state, 'observer', { value: createAttributeObserver([...state.attributes, 'value'], state.validator.updateAndRun) });
+  Object.defineProperty(state, 'observer', { value: createAttributeObserver([...state.attributes, 'value', 'disabled'], state.validator.updateAndRun) });
 
   return Object.freeze(state);
 }

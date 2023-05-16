@@ -48,9 +48,6 @@ export function setup(state: VacoState, control: ListedElement): ControlApi {
   const { reporter, states, validator, observer } = state;
   const validationMessages: ValidationMessages = {};
   const validity = createValidityState(states);
-  const prototype = Object.getPrototypeOf(control);
-  const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
-  const getter = Object.getOwnPropertyDescriptor(prototype, 'value')?.get;
   let validatorEventListener: EventListenerOrEventListenerObject | undefined;
 
   Object.defineProperty(control, 'validationMessage', {
@@ -85,22 +82,43 @@ export function setup(state: VacoState, control: ListedElement): ControlApi {
   });
 
   if (isSubmittableElement(control)) {
+    const prototype = Object.getPrototypeOf(control);
+    const valuePropertyDescriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+
     validatorEventListener = validator.run.bind(null, control);
 
     Object.defineProperty(control, 'value', {
       configurable: true,
       enumerable: true,
       set(value: unknown) {
-        setter?.apply(this, [value]);
+        valuePropertyDescriptor?.set?.apply(this, [value]);
         validator.run(control);
       },
       get() {
-        return getter?.apply(this);
+        return valuePropertyDescriptor?.get?.apply(this);
       }
     });
 
     observer.connect(control);
     control.addEventListener('input', validatorEventListener);
+  }
+
+  if (control instanceof HTMLFieldSetElement) {
+    const prototype = Object.getPrototypeOf(control);
+    const disabledPropertyDescriptor = Object.getOwnPropertyDescriptor(control, 'disabled')
+      || Object.getOwnPropertyDescriptor(prototype, 'disabled');
+
+    Object.defineProperty(control, 'disabled', {
+      configurable: true,
+      enumerable: true,
+      set(value: unknown) {
+        disabledPropertyDescriptor?.set?.apply(this, [value]);
+        [...control.elements].filter(isSubmittableElement).forEach(validator.run);
+      },
+      get() {
+        return disabledPropertyDescriptor?.get?.apply(this);
+      }
+    });
   }
 
   return {
