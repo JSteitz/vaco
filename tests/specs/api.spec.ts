@@ -124,26 +124,6 @@ test(
 );
 
 test(
-  'resetValidity :: Skips controls barred from validation',
-  (assert) => {
-    const invalidControl = document.createElement('input');
-    const validationMessages: ValidationMessages = {
-      customError: "validation message"
-    };
-
-    Object.defineProperty(invalidControl, 'willValidate', { value: false });
-    Object.defineProperty(invalidControl.validity, 'valid', ValidityStateDescriptor(false));
-    Object.defineProperty(invalidControl.validity, 'customError', ValidityStateDescriptor(true));
-
-    resetValidity(validationMessages, invalidControl, ['customError']);
-
-    assert.equal(validationMessages.customError, 'validation message', 'validation message is not removed');
-    assert.notOk(invalidControl.validity.valid, 'valid flag is false');
-    assert.ok(invalidControl.validity.customError, 'error flag is true');
-  },
-)
-
-test(
   'resetValidity :: Resets the validity state',
   (assert) => {
     const control = document.createElement('input');

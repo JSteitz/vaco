@@ -132,10 +132,6 @@ export function setValidity(validationMessages: ValidationMessages, element: Lis
  * for the current state of the elements validity.
  */
 export function resetValidity(validationMessages: ValidationMessages, element: ListedElement, flags: string[]): void {
-  if (!element.willValidate) {
-    return;
-  }
-
   flags.forEach((flag: string) => {
     Object.defineProperty(element.validity, flag, ValidityStateDescriptor(false));
     delete validationMessages[flag];
